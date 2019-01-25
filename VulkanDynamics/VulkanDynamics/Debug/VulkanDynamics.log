@@ -1,0 +1,4 @@
+﻿  VulkanDynamics.cpp
+c:\projects\vulkandynamics\vulkandynamics\vulkandynamics\vulkandynamics.cpp(462): warning C4101: 'glfwExtensions': unreferenced local variable
+c:\projects\vulkandynamics\vulkandynamics\vulkandynamics\vulkandynamics.cpp(466): warning C4101: 'retval': unreferenced local variable
+  VulkanDynamics.vcxproj -> C:\Projects\VulkanDynamics\VulkanDynamics\Debug\VulkanDynamics.exe

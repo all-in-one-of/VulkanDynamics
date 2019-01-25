@@ -1,10 +1,6 @@
 #ifndef  __SCENEMODULE_H
 #define  __SCENEMODULE_H
 
-
-
-
-
 float vertices1[] = {   -1.0f,-1.0f,-1.0f, // triangle 1 : begin
 						-1.0f,-1.0f, 1.0f,
 						-1.0f, 1.0f, 1.0f, // triangle 1 : end

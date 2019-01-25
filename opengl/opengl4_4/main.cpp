@@ -87,10 +87,6 @@ unsigned int tex = 0;
 
 //GLuint image = loadBMP_custom("my_texture.bmp");
 
-
-
-
-
 // storage for matrices
 float projMatrix[16];
 float viewMatrix[16];
@@ -150,8 +146,6 @@ void copy_proj ( float * a )
 	a[14] = projMatrix[14];
 	a[15] = projMatrix[15];
 }
-
-
 
 // Matrix Opt. - In Opengl 3 we need to handle our own matrix.
  
@@ -430,7 +424,6 @@ void changeSize(int w, int h) {
 
 }
 
-
 void setTop (  )
 {
 	//for ( int i = 0 ; i < 9 ; ++ i )
@@ -485,7 +478,6 @@ void my_calcNormals()
 
 void setupBuffers() { //*******called once in main
 
-	
 	//my_calcNormals ();
 
     GLuint buffers[3];
@@ -625,7 +617,7 @@ void renderScene(void) {
 		timebase = time;
 		frame = 0;
 	}
-
+		
     glutSetWindowTitle(s);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glBlendFunc (GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -712,8 +704,6 @@ void renderScene(void) {
 	 */
 	
 
-
-	
 	if ( activateTrans )
 	{
 		glEnable (GL_DEPTH_TEST);
@@ -730,9 +720,6 @@ void renderScene(void) {
     glDrawArrays(GL_LINES, 36, 6);
 
 
-
-	
-	
 	// tex is the name of a texture object that has been
 	// initialized with some texture data
 	glBindTexture(GL_TEXTURE_2D, tex);
@@ -810,8 +797,6 @@ void printProgramInfoLog(GLuint obj)
  
 GLuint initShaders() {
  
-
-	
     char *vertShader = NULL,*fragShader = NULL;
  
     GLuint p,v,f;
