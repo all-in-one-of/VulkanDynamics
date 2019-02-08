@@ -24,6 +24,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
 #include <glm/ext/scalar_constants.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <TinyObjectLoader/tiny_obj_loader.h>
@@ -31,10 +32,7 @@
 #include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan.hpp>
-//#include <SDL/SDL.h>
-//#include <SDL/SDL_vulkan.h>
 #include <GLFW/glfw3.h>
-
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
 	auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
@@ -109,9 +107,9 @@ struct Vertex {
 		return pos == other.pos && color == other.color;
 	}
 };
-
+// CHANGE
 struct VertexNew {
-	glm::vec4 color;
+	glm::vec3 color;
 	glm::vec3 vertexNormal;
 	glm::vec3 pos;
 	glm::vec3 lightPos;
@@ -152,7 +150,8 @@ struct VertexNew {
 	}
 
 	bool operator==(const VertexNew& other) const {
-		return pos == other.pos && color == other.color && vertexNormal == other.vertexNormal && lightPos == other.lightPos ;
+		//return pos == other.pos && color == other.color && vertexNormal == other.vertexNormal && lightPos == other.lightPos ;
+		return pos == other.pos && color == other.color;
 	}
 };
 
@@ -178,9 +177,15 @@ struct UniformBufferObject {
 	alignas(16) glm::mat4 model;
 	alignas(16) glm::mat4 view;
 	alignas(16) glm::mat4 proj;
+};
+// CHANGE
+struct UniformBufferObjectNew {
+	alignas(16) glm::mat4 model;
+	alignas(16) glm::mat4 view;
+	alignas(16) glm::mat4 proj;
 	alignas(4) glm::mat3 normalMatrix;
 };
-
+/* // Lets not include the alignment for now
 struct UniformFragmentObject {
 	alignas(16) glm::vec3 Ambient;
 	alignas(16) glm::vec3 LightColor;
@@ -193,13 +198,30 @@ struct UniformFragmentObject {
 	alignas(4)  float QuadraticAttenuation;
 	alignas(16) glm::mat4 viewMatrix;
 	alignas(16) glm::mat4 eyeViewMatrix;
-
 };
+*/
+
+struct UniformFragmentObject {
+	glm::vec3 Ambient;
+	glm::vec3 LightColor;
+	glm::vec3 LightPosition;
+	float Reflectivity;
+	float Strength;
+	glm::vec3 EyeDirection;
+	float ConstantAttenuation;
+	float LinearAttenuation;
+	float QuadraticAttenuation;
+	glm::mat4 viewMatrix;
+	glm::mat4 eyeViewMatrix;
+};
+
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
 
-const std::string MODEL_PATH = "models/chalet.obj";
+// CHANGE
+//const std::string MODEL_PATH = "models/chalet.obj";
+const std::string MODEL_PATH = "models/FelModelReal.obj";
 //const std::string TEXTURE_PATH = "textures/chalet.jpg";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -213,16 +235,16 @@ const std::vector<const char*> deviceExtensions = {
 };
 
 #ifdef _DEBUG
-const bool enableValidationLayers = false;
-#else
 const bool enableValidationLayers = true;
+#else
+const bool enableValidationLayers = false;
 #endif
 
 class MainVulkApplication {
 	friend void mainLoop(MainVulkApplication & );
 	friend void updateUniformBuffer(MainVulkApplication & );
 	friend void loadInitialVariables(MainVulkApplication & );
-	friend void loadModel(MainVulkApplication & _app);
+	//friend void loadModel(MainVulkApplication & _app);
 
 public:
 	void setup() {
@@ -270,6 +292,7 @@ private:
 	VkDeviceMemory depthImageMemory;
 	VkImageView depthImageView;
 
+	// CHANGE
 	//std::vector<Vertex> vertices;
 	std::vector<VertexNew> vertices;
 	std::vector<uint32_t> indices;
@@ -287,7 +310,8 @@ private:
 	VkDescriptorPool descriptorPool;
 	std::vector<VkDescriptorSet> descriptorSets;
 
-	UniformBufferObject ubo;
+	// CHANGE
+	UniformBufferObjectNew ubo;
 	UniformFragmentObject ufo;
 
 	std::vector<VkCommandBuffer> commandBuffers;
@@ -337,7 +361,7 @@ private:
 
 		//createTextureImageView();
 		//createTextureSampler();
-		//loadModel();
+		loadModel();
 		createVertexBuffer();
 		createIndexBuffer();
 		createUniformBuffers();
@@ -685,6 +709,7 @@ private:
 		}
 	}
 
+	// CHANGE
 	void createDescriptorSetLayout() {
 		VkDescriptorSetLayoutBinding uboLayoutBinding = {};
 		uboLayoutBinding.binding = 0;
@@ -711,6 +736,7 @@ private:
 		}
 	}
 
+	// CHANGE
 	// where the attributes(descriptor) sets are instantiated and set
 	void createGraphicsPipeline() {
 		auto vertShaderCode = readFile("shaders/vert.spv");
@@ -961,6 +987,7 @@ private:
 		return imageView;
 	}
 
+	// CHANGE
 	void createImage(uint32_t width, uint32_t height, VkFormat format, VkImageTiling tiling, VkImageUsageFlags usage, VkMemoryPropertyFlags properties, VkImage& image, VkDeviceMemory& imageMemory) {
 		VkImageCreateInfo imageInfo = {};
 		imageInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -1086,7 +1113,7 @@ private:
 		endSingleTimeCommands(commandBuffer);
 	}
 
-	/*
+	
 	void loadModel() {
 		tinyobj::attrib_t attrib;
 		std::vector<tinyobj::shape_t> shapes;
@@ -1097,11 +1124,11 @@ private:
 			throw std::runtime_error(warn + err);
 		}
 
-		std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
+		std::unordered_map<VertexNew, uint32_t> uniqueVertices = {};
 
 		for (const auto& shape : shapes) {
 			for (const auto& index : shape.mesh.indices) {
-				Vertex vertex = {};
+				VertexNew vertex = {};
 
 				vertex.pos = {
 					attrib.vertices[3 * index.vertex_index + 0],
@@ -1121,11 +1148,13 @@ private:
 					vertices.push_back(vertex);
 				}
 
+				vertex.lightPos = { 0.0f, 3.0f, -3.0f };
+
 				indices.push_back(uniqueVertices[vertex]);
 			}
 		}
 	}
-	*/
+	
 	void createVertexBuffer() {
 		VkDeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
 
@@ -1166,28 +1195,31 @@ private:
 		vkFreeMemory(device, stagingBufferMemory, nullptr);
 	}
 
+	// CHANGE
 	void createUniformBuffers() {
-		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+		//VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+		VkDeviceSize bufferSize = sizeof(UniformBufferObjectNew);
 		VkDeviceSize bufferFragSize = sizeof(UniformFragmentObject);
 
 		uniformBuffers.resize(swapChainImages.size());
 		uniformBuffersMemory.resize(swapChainImages.size());
 
 		uniformFragBuffers.resize(swapChainImages.size());
-		uniformBuffersMemory.resize(swapChainImages.size());
+		uniformFragBuffersMemory.resize(swapChainImages.size());
 
 		for (size_t i = 0; i < swapChainImages.size(); i++) {
 			createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
-			createBuffer(bufferFragSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformFragBuffers[i], uniformBuffersMemory[i]);
+			createBuffer(bufferFragSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformFragBuffers[i], uniformFragBuffersMemory[i]);
 		}
 	}
 
+	// CHANGE
 	void createDescriptorPool() {
-		std::array<VkDescriptorPoolSize, 2> poolSizes = {};
+		std::array<VkDescriptorPoolSize, 1> poolSizes = {};
 		poolSizes[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		poolSizes[0].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
-		poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
+		//poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		//poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 
 		VkDescriptorPoolCreateInfo poolInfo = {};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -1200,6 +1232,7 @@ private:
 		}
 	}
 
+	// CHANGE
 	void createDescriptorSets() {
 		std::vector<VkDescriptorSetLayout> layouts(swapChainImages.size(), descriptorSetLayout);
 		VkDescriptorSetAllocateInfo allocInfo = {};
@@ -1217,8 +1250,14 @@ private:
 			VkDescriptorBufferInfo bufferInfo = {};
 			bufferInfo.buffer = uniformBuffers[i];
 			bufferInfo.offset = 0;
-			bufferInfo.range = sizeof(UniformBufferObject);
+			//bufferInfo.range = sizeof(UniformBufferObject);
+			bufferInfo.range = sizeof(UniformBufferObjectNew);
 
+			VkDescriptorBufferInfo bufferFragInfo = {};
+			bufferFragInfo.buffer = uniformFragBuffers[i];
+			bufferFragInfo.offset = 0;
+			bufferInfo.range = sizeof(UniformFragmentObject);
+			
 			//VkDescriptorImageInfo imageInfo = {};
 			//imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			//imageInfo.imageView = textureImageView;
@@ -1240,7 +1279,7 @@ private:
 			descriptorWrites[1].dstArrayElement = 0;
 			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			descriptorWrites[1].descriptorCount = 1;
-			descriptorWrites[1].pBufferInfo = &bufferInfo;
+			descriptorWrites[1].pBufferInfo = &bufferFragInfo;
 
 			//descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			//descriptorWrites[1].dstSet = descriptorSets[i];
@@ -1415,6 +1454,7 @@ private:
 		}
 	}
 
+	// CHANGE
 	void updateUniformBuffer(uint32_t currentImage) {
 		//static auto startTime = std::chrono::high_resolution_clock::now();
 
@@ -1431,6 +1471,11 @@ private:
 		vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
 		memcpy(data, &ubo, sizeof(ubo));
 		vkUnmapMemory(device, uniformBuffersMemory[currentImage]);
+
+		void * data2;
+		vkMapMemory(device, uniformFragBuffersMemory[currentImage], 0, sizeof(ufo), 0, &data2);
+		memcpy(data2, &ufo, sizeof(ufo));
+		vkUnmapMemory(device, uniformFragBuffersMemory[currentImage]);
 	}
 
 	void drawFrame() {
@@ -1467,7 +1512,10 @@ private:
 
 		vkResetFences(device, 1, &inFlightFences[currentFrame]);
 
-		if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
+		VkResult returnThis = vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]);
+
+		//if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
+		if (returnThis != VK_SUCCESS) {
 			throw std::runtime_error("failed to submit draw command buffer!");
 		}
 

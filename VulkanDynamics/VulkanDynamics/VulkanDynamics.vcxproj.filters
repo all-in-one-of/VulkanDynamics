@@ -18,9 +18,6 @@
     <ClCompile Include="VulkanDynamics.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="InputHandler.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="VulkanDynamics.h">
@@ -38,5 +35,7 @@
     <None Include="shaders\fragment.frag" />
     <None Include="shaders\fragmentNew.frag" />
     <None Include="shaders\vertexNew.vert" />
+    <None Include="shaders\fragmentInter.frag" />
+    <None Include="shaders\vertexInter.vert" />
   </ItemGroup>
 </Project>
