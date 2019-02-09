@@ -211,9 +211,25 @@ struct UniformFragmentObject {
 	float ConstantAttenuation;
 	float LinearAttenuation;
 	float QuadraticAttenuation;
-	glm::mat4 viewMatrix;
-	glm::mat4 eyeViewMatrix;
+	glm::mat3 viewMatrix;
+	glm::mat3 eyeViewMatrix;
 };
+
+void printDeviceProperties(const VkPhysicalDeviceProperties  & dP) {
+
+	using std::cout; using std::endl;
+	
+	cout << "Device Properties : " << endl;
+	cout << "Device Name : " << dP.deviceName << endl;
+	cout << "Device Type : " << dP.deviceType << endl;
+	cout << "Device Version : " << dP.driverVersion << endl;
+	cout << "Api Version : " << dP.apiVersion << endl;
+	cout << "Vendor ID : " << dP.vendorID << endl;
+	cout << "Device ID : " << dP.deviceID << endl << endl;
+
+	cout << "maxDescriptorSetStorageBuffersDynamic : " << dP.limits.maxDescriptorSetStorageBuffersDynamic << endl;
+	cout << "maxDescriptorSetUniformBuffersDynamic : " << dP.limits.maxDescriptorSetUniformBuffersDynamic << endl;
+}
 
 
 const int WIDTH = 800;
@@ -222,6 +238,7 @@ const int HEIGHT = 600;
 // CHANGE
 //const std::string MODEL_PATH = "models/chalet.obj";
 const std::string MODEL_PATH = "models/FelModelReal.obj";
+//const std::string MODEL_PATH = "models/FelSimple.obj";
 //const std::string TEXTURE_PATH = "textures/chalet.jpg";
 
 const int MAX_FRAMES_IN_FLIGHT = 2;
@@ -534,6 +551,13 @@ private:
 		vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
 
 		for (const auto& device : devices) {
+			VkPhysicalDeviceProperties physicalProperties = {};
+
+			for (uint32_t i = 0; i < deviceCount; i++) {
+				vkGetPhysicalDeviceProperties(devices[i], &physicalProperties);
+				printDeviceProperties(physicalProperties);
+			}
+
 			if (isDeviceSuitable(device)) {
 				physicalDevice = device;
 				break;
@@ -823,6 +847,7 @@ private:
 		VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
 		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 		colorBlendAttachment.blendEnable = VK_FALSE;
+		//colorBlendAttachment.blendEnable = VK_TRUE;
 
 		VkPipelineColorBlendStateCreateInfo colorBlending = {};
 		colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -1120,13 +1145,16 @@ private:
 		std::vector<tinyobj::material_t> materials;
 		std::string warn, err;
 
-		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str())) {
+		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, MODEL_PATH.c_str(), 0, true)) {
 			throw std::runtime_error(warn + err);
 		}
 
 		std::unordered_map<VertexNew, uint32_t> uniqueVertices = {};
 
+		int numberOfPoints = 0;
+
 		for (const auto& shape : shapes) {
+			/*
 			for (const auto& index : shape.mesh.indices) {
 				VertexNew vertex = {};
 
@@ -1151,6 +1179,40 @@ private:
 				vertex.lightPos = { 0.0f, 3.0f, -3.0f };
 
 				indices.push_back(uniqueVertices[vertex]);
+			}
+			*/
+			
+			// No unique vertices nor normal interpoaltion
+
+			int fdfdgd = 4;
+
+			for (int i = 0; i < shape.mesh.indices.size(); i += 3 ) {
+
+				VertexNew v1, v2, v3;
+				v1.pos = { attrib.vertices[3 * shape.mesh.indices[i].vertex_index + 0], attrib.vertices[3 * shape.mesh.indices[i].vertex_index + 1], attrib.vertices[3 * shape.mesh.indices[i].vertex_index + 2] };
+				v2.pos = { attrib.vertices[3 * shape.mesh.indices[i+1].vertex_index + 0], attrib.vertices[3 * shape.mesh.indices[i+1].vertex_index + 1], attrib.vertices[3 * shape.mesh.indices[i+1].vertex_index + 2] };
+				v3.pos = { attrib.vertices[3 * shape.mesh.indices[i+2].vertex_index + 0], attrib.vertices[3 * shape.mesh.indices[i+2].vertex_index + 1], attrib.vertices[3 * shape.mesh.indices[i+2].vertex_index + 2] };
+
+				v1.color = { 1.0f, 1.0f, 1.0f };
+				v2.color = { 1.0f, 1.0f, 1.0f };
+				v3.color = { 1.0f, 1.0f, 1.0f };
+
+				//glm::vec3 triNormal = glm::normalize ( glm::cross((v2.pos - v1.pos), (v3.pos - v1.pos)) );
+				glm::vec3 triNormal = glm::normalize(glm::cross((v3.pos - v1.pos), (v2.pos - v1.pos)));
+
+				v1.vertexNormal = v2.vertexNormal = v3.vertexNormal = triNormal;
+
+				v1.lightPos = { 0.0f, -3.0f, 0.0f };
+				v2.lightPos = { 0.0f, -3.0f, 0.0f };
+				v3.lightPos = { 0.0f, -3.0f, 0.0f };
+
+				vertices.push_back(v1);
+				vertices.push_back(v2);
+				vertices.push_back(v3);
+
+				indices.push_back(numberOfPoints++);
+				indices.push_back(numberOfPoints++);
+				indices.push_back(numberOfPoints++);
 			}
 		}
 	}

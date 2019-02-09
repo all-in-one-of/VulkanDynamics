@@ -18,8 +18,8 @@ float projMatrix[16];
 glm::mat4 viewMatrix;
 glm::mat4 eyeviewMatrix;
 glm::vec3 ambientLight(0.1f, 0.1f, 0.1f);
-glm::vec3 lightColor ( 1.0f, 0.0f, 0.0f );
-glm::vec3 LightPosition ( 0.0f, 3.0f, -3.0f );
+glm::vec3 lightColor ( 1.0f, 1.0f, 1.0f );
+glm::vec3 LightPosition ( 0.0f, 0.0f, 1.0f );
 float Shininess = 140.0f;
 float Strength = 60.0f;
 glm::vec3 EyeDirection ( 0.0f,1.0f, -3.0f );
@@ -36,77 +36,11 @@ glm::vec3 centerLoc(0.0, 0.0, 0.0);
 glm::vec3 up(0.0, 0.0, 1.0);
 float fov = glm::radians<float>(45.0f);
 
-void setTop(){
-	normalModelViewMatrix[0][0] = eyeviewMatrix[0][0];
-	normalModelViewMatrix[0][1] = eyeviewMatrix[0][1];
-	normalModelViewMatrix[0][2] = eyeviewMatrix[0][2];
-	normalModelViewMatrix[1][0] = eyeviewMatrix[1][0];
-	normalModelViewMatrix[1][1] = eyeviewMatrix[1][1];
-	normalModelViewMatrix[1][2] = eyeviewMatrix[1][2];
-	normalModelViewMatrix[2][0] = eyeviewMatrix[2][0];
-	normalModelViewMatrix[2][1] = eyeviewMatrix[2][1];
-	normalModelViewMatrix[2][2] = eyeviewMatrix[2][2];
-}
 
-void set_eyeView(float eyex, float eyey, float eyez,
-	float centx, float centy, float centz,
-	float upx, float upy, float upz) {
-
-	float fwd[3], side[3], up[3];
-	
-	fwd[0] = centx - eyex;
-	fwd[1] = centy - eyey;
-	fwd[2] = centz - eyez;
-
-	float fwd_length = sqrt((fwd[0] * fwd[0]) + (fwd[1] * fwd[1]) + (fwd[2] * fwd[2]));
-	fwd[0] = fwd[0] / fwd_length;
-	fwd[1] = fwd[1] / fwd_length;
-	fwd[2] = fwd[2] / fwd_length;
-
-	side[0] = fwd[1] * upz - fwd[2] * upy;
-	side[1] = fwd[2] * upx - fwd[0] * upz;
-	side[2] = fwd[0] * upy - fwd[1] * upx;
-
-	float side_length = sqrt((side[0] * side[0]) + (side[1] * side[1]) + (side[2] * side[2]));
-	side[0] = side[0] / side_length;
-	side[1] = side[1] / side_length;
-	side[2] = side[2] / side_length;
-
-	up[0] = side[1] * fwd[2] - side[2] * fwd[1];
-	up[1] = side[2] * fwd[0] - side[0] * fwd[2];
-	up[2] = side[0] * fwd[1] - side[1] * fwd[0];
-
-	eyeviewMatrix[0][0] = side[0];
-	eyeviewMatrix[0][1] = side[1];
-	eyeviewMatrix[0][2] = side[2];
-	eyeviewMatrix[0][3] = 0.0;
-
-	eyeviewMatrix[1][0] = up[0];
-	eyeviewMatrix[1][1] = up[1];
-	eyeviewMatrix[1][2] = up[2];
-	eyeviewMatrix[1][3] = 0.0;
-
-	eyeviewMatrix[2][0] = -fwd[0];
-	eyeviewMatrix[2][1] = -fwd[1];
-	eyeviewMatrix[2][2] = -fwd[2];
-	eyeviewMatrix[2][3] = 0.0;
-
-	eyeviewMatrix[3][0] = eyeviewMatrix[3][1] = eyeviewMatrix[3][2] = 0.0;
-	eyeviewMatrix[3][3] = 1.0;
-
-	glm::mat4 aux;
-	aux[0][0] = aux[1][1] = aux[2][2] = aux[3][3] = 1.0f;
-	aux[0][1] = aux[0][2] = aux[1][0] = aux[1][2] = aux[2][0] = aux[2][1] = aux[3][0] = aux[3][1] = aux[3][2] = 0.0f;
-	aux[0][3] = -eyex;
-	aux[1][3] = -eyey;
-	aux[2][3] = -eyez;
-
-	eyeviewMatrix = eyeviewMatrix * aux;
-}
 
 //need to load in the value of the uniform buffers for the frag and vert shader + load attributes
 void loadInitialVariables(MainVulkApplication & _app) {
-	_app.ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	_app.ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	_app.ubo.view = glm::lookAt(mainEyeLoc, centerLoc, up);
 	_app.ubo.proj = glm::perspective(fov, _app.swapChainExtent.width / (float)_app.swapChainExtent.height, 0.1f, 9.0f);
 	_app.ubo.proj[1][1] *= -1;
@@ -122,8 +56,10 @@ void loadInitialVariables(MainVulkApplication & _app) {
 	_app.ufo.ConstantAttenuation = ConstantAttenuation;
 	_app.ufo.LinearAttenuation = LinearAttenuation;
 	_app.ufo.QuadraticAttenuation = QuadraticAttenuation;
-	_app.ufo.viewMatrix = viewMatrix;
-	_app.ufo.eyeViewMatrix = eyeviewMatrix;
+	//_app.ufo.viewMatrix = viewMatrix;
+	//_app.ufo.eyeViewMatrix = eyeviewMatrix;
+	_app.ufo.viewMatrix = glm::inverseTranspose(viewMatrix3x3);;
+	_app.ufo.eyeViewMatrix = glm::inverseTranspose(viewMatrix3x3);;
 }
 
 void updateUniformBuffer(MainVulkApplication & _app) {
@@ -172,7 +108,7 @@ int main() {
 	MainVulkApplication app;
 
 	try {
-		set_eyeView(5.0f, 5.0f, 5.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f);
+		//set_eyeView(5.0f, 5.0f, 5.0f, 0.0f, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f);
 		//loadModel(app);
 		app.setup();
 		loadInitialVariables(app);
