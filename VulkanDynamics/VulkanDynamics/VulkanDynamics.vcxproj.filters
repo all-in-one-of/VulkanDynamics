@@ -37,5 +37,7 @@
     <None Include="shaders\vertexNew.vert" />
     <None Include="shaders\fragmentInter.frag" />
     <None Include="shaders\vertexInter.vert" />
+    <None Include="shaders\fragmentDynamic.frag" />
+    <None Include="shaders\vertexDynamic.vert" />
   </ItemGroup>
 </Project>
