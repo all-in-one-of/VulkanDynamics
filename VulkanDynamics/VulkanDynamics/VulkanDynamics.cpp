@@ -1,6 +1,6 @@
 // VulkanDynamics.cpp
 //
-#include "VulkanDynamics.h"
+#include "VulkanDynamics.hpp"
 #include "Scene.h"
 #include "InputHandler.h"
 
@@ -59,7 +59,16 @@ void loadInitialVariables(MainVulkApplication & _app) {
 	//_app.ufo.viewMatrix = viewMatrix;
 	//_app.ufo.eyeViewMatrix = eyeviewMatrix;
 	_app.ufo.viewMatrix = glm::inverseTranspose(viewMatrix3x3);;
-	_app.ufo.eyeViewMatrix = glm::inverseTranspose(viewMatrix3x3);;
+	_app.ufo.eyeViewMatrix = glm::inverseTranspose(viewMatrix3x3);
+
+	for (int i = 0; i < numberOfSpheres; ++i) {
+		glm::mat4* modelMat = (glm::mat4*)(((uint64_t)_app.uboDataDynamic.model + (i * _app.dynamicAlignment)));
+
+		//_app.uboDataDynamic.model
+
+
+		*modelMat = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+	}
 }
 
 void updateUniformBuffer(MainVulkApplication & _app) {
@@ -95,7 +104,9 @@ void mainLoop(MainVulkApplication & _app) {
 	glfwSetCursorPosCallback(_app.window, mouse_cursor_callback);
 	glfwSetMouseButtonCallback(_app.window, mouse_button_callback);
 
-	while (!glfwWindowShouldClose(_app.window)) {
+	int WindowRes;
+
+	while (!(WindowRes = glfwWindowShouldClose(_app.window))) {
 		glfwPollEvents();
 		updateUniformBuffer(_app);
 		_app.drawFrame();
