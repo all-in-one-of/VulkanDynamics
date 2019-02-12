@@ -164,7 +164,7 @@
   <ItemGroup>
     <ClInclude Include="InputHandler.h" />
     <ClInclude Include="Scene.h" />
-    <ClInclude Include="VulkanDynamics.h" />
+    <ClInclude Include="VulkanDynamics.hpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="shaders\fragment.frag">
