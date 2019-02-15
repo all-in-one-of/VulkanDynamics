@@ -33,6 +33,7 @@
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
+
 #include "ValidationLayers.hpp"
 
 
@@ -54,6 +55,7 @@ struct SwapChainSupportDetails {
 // CHANGE
 struct Vertex {
 	glm::vec3 color;
+
 	glm::vec3 vertexNormal;
 	glm::vec3 pos;
 	glm::vec3 lightPos;
@@ -93,7 +95,9 @@ struct Vertex {
 		return attributeDescriptions;
 	}
 
+
 	bool operator==(const Vertex& other) const {
+
 		//return pos == other.pos && color == other.color && vertexNormal == other.vertexNormal && lightPos == other.lightPos ;
 		return pos == other.pos && color == other.color;
 	}
@@ -108,6 +112,12 @@ namespace std {
 }
 
 struct UniformBufferObject {
+	alignas(16) glm::mat4 model;
+	alignas(16) glm::mat4 view;
+	alignas(16) glm::mat4 proj;
+};
+// CHANGE
+struct UniformBufferObjectNew {
 	alignas(16) glm::mat4 model;
 	alignas(16) glm::mat4 view;
 	alignas(16) glm::mat4 proj;
@@ -129,6 +139,7 @@ struct UniformFragmentObject {
 };
 */
 
+
 struct UniformFragmentObject {
 	glm::vec3 Ambient;
 	glm::vec3 LightColor;
@@ -148,6 +159,7 @@ struct UniformBufferObjectDynamic {
 	//glm::mat4 model;
 };
 
+
 void printDeviceProperties(const VkPhysicalDeviceProperties  & dP) {
 
 	using std::cout; using std::endl;
@@ -163,13 +175,16 @@ void printDeviceProperties(const VkPhysicalDeviceProperties  & dP) {
 	cout << "maxDescriptorSetStorageBuffersDynamic : " << dP.limits.maxDescriptorSetStorageBuffersDynamic << endl;
 	cout << "maxDescriptorSetUniformBuffersDynamic : " << dP.limits.maxDescriptorSetUniformBuffersDynamic << endl;
 	cout << "minUniformBufferOffsetAlignment : " << dP.limits.minUniformBufferOffsetAlignment << endl;
+
 	cout << "maxUniformBufferRange : " << dP.limits.maxUniformBufferRange << endl; 
 }
+
 
 const int WIDTH = 800;
 const int HEIGHT = 600;
 
 const int numberOfSpheres = 481;
+
 
 // CHANGE
 //const std::string MODEL_PATH = "models/chalet.obj";
@@ -183,6 +198,7 @@ const int ResourcesCount = 2;
 const std::vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
+
 
 class MainVulkApplication {
 	friend void mainLoop(MainVulkApplication & );
@@ -237,6 +253,7 @@ private:
 	VkImageView depthImageView;
 
 	std::vector<Vertex> vertices;
+
 	std::vector<uint32_t> indices;
 	VkBuffer vertexBuffer;
 	VkDeviceMemory vertexBufferMemory;
@@ -258,9 +275,11 @@ private:
 	VkDescriptorPool descriptorPool;
 	std::vector<VkDescriptorSet> descriptorSets;
 
-	UniformBufferObject ubo;
+	// CHANGE
+	UniformBufferObjectNew ubo;
 	UniformFragmentObject ufo;
 	UniformBufferObjectDynamic uboDataDynamic;
+
 
 	std::vector<VkCommandBuffer> commandBuffers;
 
@@ -309,6 +328,7 @@ private:
 		createCommandPool();
 		createDepthResources();
 		createFramebuffers();
+
 
 		loadModel();
 		createVertexBuffer();
@@ -794,7 +814,7 @@ private:
 		VkPipelineColorBlendAttachmentState colorBlendAttachment = {};
 		colorBlendAttachment.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 		colorBlendAttachment.blendEnable = VK_FALSE;
-		
+
 		VkPipelineColorBlendStateCreateInfo colorBlending = {};
 		colorBlending.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 		colorBlending.logicOpEnable = VK_FALSE;
@@ -1057,6 +1077,7 @@ private:
 		endSingleTimeCommands(commandBuffer);
 	}
 
+
 	void loadModel() {
 		tinyobj::attrib_t attrib;
 		std::vector<tinyobj::shape_t> shapes;
@@ -1067,7 +1088,9 @@ private:
 			throw std::runtime_error(warn + err);
 		}
 
-		std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
+		std::unordered_map<VertexNew, uint32_t> uniqueVertices = {};
+
+		int numberOfPoints = 0;
 
 		int numberOfPoints = 0;
 
@@ -1106,7 +1129,9 @@ private:
 
 			for (int i = 0; i < shape.mesh.indices.size(); i += 3 ) {
 
+
 				Vertex v1, v2, v3;
+
 				v1.pos = { attrib.vertices[3 * shape.mesh.indices[i].vertex_index + 0], attrib.vertices[3 * shape.mesh.indices[i].vertex_index + 1], attrib.vertices[3 * shape.mesh.indices[i].vertex_index + 2] };
 				v2.pos = { attrib.vertices[3 * shape.mesh.indices[i+1].vertex_index + 0], attrib.vertices[3 * shape.mesh.indices[i+1].vertex_index + 1], attrib.vertices[3 * shape.mesh.indices[i+1].vertex_index + 2] };
 				v3.pos = { attrib.vertices[3 * shape.mesh.indices[i+2].vertex_index + 0], attrib.vertices[3 * shape.mesh.indices[i+2].vertex_index + 1], attrib.vertices[3 * shape.mesh.indices[i+2].vertex_index + 2] };
@@ -1178,7 +1203,9 @@ private:
 	// CHANGE
 	void createUniformBuffers() {
 		//VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+
 		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
+
 		VkDeviceSize bufferFragSize = sizeof(UniformFragmentObject);
 		//VkDeviceSize bufferDynamicSize = sizeof(UniformBufferObjectDynamicNew);
 
@@ -1195,6 +1222,7 @@ private:
 		vkGetPhysicalDeviceProperties(physicalDevice, &physicalProperties);
 
 		size_t minUboAlignment = physicalProperties.limits.minUniformBufferOffsetAlignment;
+
 
 		dynamicAlignment = sizeof(glm::mat4);
 		if (minUboAlignment > 0) {
@@ -1214,6 +1242,7 @@ private:
 			createBuffer(bufferDynamicSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformDynamicBuffers[i], uniformDynamicBuffersMemory[i]);
 			
 
+
 		}
 		*/
 		createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[0], uniformBuffersMemory[0]);
@@ -1231,6 +1260,7 @@ private:
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 		//poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 		poolSizes[0].descriptorCount = 1;
+
 
 		VkDescriptorPoolCreateInfo poolInfo = {};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
@@ -1265,7 +1295,9 @@ private:
 			VkDescriptorBufferInfo bufferInfo = {};
 			bufferInfo.buffer = uniformBuffers[i];
 			bufferInfo.offset = 0;
+
 			bufferInfo.range = sizeof(UniformBufferObject);
+
 
 			VkDescriptorBufferInfo bufferFragInfo = {};
 			bufferFragInfo.buffer = uniformFragBuffers[i];
@@ -1278,6 +1310,7 @@ private:
 			//bufferDynamicInfo.range = sizeof(glm::mat4);
 			//bufferDynamicInfo.range = bufferDynamicSize;
 			bufferDynamicInfo.range = sizeof(uboDataDynamic);
+
 
 			std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
 
@@ -1296,6 +1329,7 @@ private:
 			descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 			descriptorWrites[1].descriptorCount = 1;
 			descriptorWrites[1].pBufferInfo = &bufferFragInfo;
+
 
 			descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[2].dstSet = descriptorSets[i];
@@ -1491,8 +1525,10 @@ private:
 				// One dynamic offset per dynamic descriptor to offset into the ubo containing all model matrices
 				uint32_t dynamicOffset = j * static_cast<uint32_t>(dynamicAlignment);
 				// Bind the descriptor set for rendering a mesh using the dynamic offset
+
 				//vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 1, &dynamicOffset);
 				vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[0], 1, &dynamicOffset);
+
 
 				vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 			}
@@ -1589,11 +1625,13 @@ private:
 		memcpy(data2, &ufo, sizeof(ufo));
 		vkUnmapMemory(device, uniformFragBuffersMemory[currentImage]);
 
+
 		void * data3;
 		vkMapMemory(device, uniformDynamicBuffersMemory[currentImage], 0, bufferDynamicSize, 0, &data3);
 		memcpy(data3, &uboDataDynamic.model, bufferDynamicSize);
 		vkUnmapMemory(device, uniformDynamicBuffersMemory[currentImage]);
 		
+
 	}
 
 	void drawFrame() {
@@ -1635,7 +1673,7 @@ private:
 		
 
 		VkResult returnThis = vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]);
-		
+
 
 		//if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
 		if (returnThis != VK_SUCCESS) {
