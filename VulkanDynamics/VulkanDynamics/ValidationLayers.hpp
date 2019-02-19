@@ -3,6 +3,7 @@
 
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan.hpp> 
+#include <fstream>
 
 #ifdef _DEBUG
 const bool enableValidationLayers = true;
@@ -10,14 +11,26 @@ const bool enableValidationLayers = true;
 const bool enableValidationLayers = false;
 #endif
 
+// Validation log file
+
+std::ofstream ValidationLayerLogFile;
+
 const std::vector<const char*> validationLayers = {
 	"VK_LAYER_LUNARG_standard_validation"
+	
 };
 
 VkResult CreateDebugUtilsMessengerEXT(VkInstance instance, const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+
+	ValidationLayerLogFile.open("ValidationDebug.txt", std::ofstream::app);
+
 	auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
 	if (func != nullptr) {
+
+
 		return func(instance, pCreateInfo, pAllocator, pDebugMessenger);
+
+
 	}
 	else {
 		return VK_ERROR_EXTENSION_NOT_PRESENT;
@@ -70,8 +83,6 @@ std::vector<const char*> getRequiredExtensions() {
 	return extensions;
 }
 
-
-
 static std::vector<char> readFile(const std::string& filename) {
 	std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
@@ -91,7 +102,9 @@ static std::vector<char> readFile(const std::string& filename) {
 }
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
-	std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+	//std::cerr << "validation layer: " << pCallbackData->pMessage << std::endl;
+
+	ValidationLayerLogFile << "validation layer: " << pCallbackData->pMessage << "\n";
 
 	return VK_FALSE;
 }

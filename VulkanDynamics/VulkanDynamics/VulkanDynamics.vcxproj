@@ -164,9 +164,7 @@
   <ItemGroup>
     <ClInclude Include="InputHandler.h" />
     <ClInclude Include="Scene.h" />
-
     <ClInclude Include="ValidationLayers.hpp" />
-
     <ClInclude Include="VulkanDynamics.hpp" />
   </ItemGroup>
   <ItemGroup>

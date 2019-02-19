@@ -25,12 +25,11 @@ layout (location = 4 ) out vec3 NormalView;
 
 void main() {
 
-	//Position = ubo.view * vec4(position, 1.0f) ;
-	//Position = vec4(position, 1.0f) ;
-	Normal = normalize( ubo.normalMatrix * VertexNormal);
+	//Normal = normalize( ubo.normalMatrix *  VertexNormal);
+	Normal = vec3 ( uboDyn.model *  vec4 ( normalize( ubo.normalMatrix *  VertexNormal), 1.0f ));
 	//LightPos = lightPos;
 	LightPos = vec3 ( ubo.proj * ubo.view * vec4 ( lightPos , 1.0f ));
     fragColor = color;
-	Position = ubo.proj * ubo.view * ubo.model * vec4(position, 1.0f);
-	gl_Position = ubo.proj * ubo.view * ubo.model * vec4(position, 1.0f);
+	Position = ubo.proj * ubo.view * uboDyn.model * vec4(position, 1.0f);
+	gl_Position = Position ;
 }

@@ -64,10 +64,8 @@ void loadInitialVariables(MainVulkApplication & _app) {
 	for (int i = 0; i < numberOfSpheres; ++i) {
 		glm::mat4* modelMat = (glm::mat4*)(((uint64_t)_app.uboDataDynamic.model + (i * _app.dynamicAlignment)));
 
-		//_app.uboDataDynamic.model
-
-
-		*modelMat = glm::mat4(glm::vec4(1.0f, 0.0f, 0.0f, 0.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f), glm::vec4(0.0f, 0.0f, 1.0f, 0.0f), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f));
+		*modelMat = glm::mat4(1.0f);
+		//*modelMat = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 0.4f ));
 	}
 }
 
@@ -76,27 +74,30 @@ void updateUniformBuffer(MainVulkApplication & _app) {
 	_app.ubo.proj = glm::perspective(fov, _app.swapChainExtent.width / (float)_app.swapChainExtent.height, 0.1f, 10.0f);
 	_app.ubo.proj[1][1] *= -1;
 	//_app.ubo.model = glm::rotate(glm::mat4(1.0f),  glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	_app.ubo.model = glm::mat4(1.0f);
-}
+	//_app.ubo.model = glm::mat4(1.0f);
 
-/*
-void loadModel(MainVulkApplication & _app) {
+	static auto startTime = std::chrono::high_resolution_clock::now();
 
-	int size = sizeof(vertices1) / sizeof(float);
+	auto currentTime = std::chrono::high_resolution_clock::now();
+	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-	for ( int i = 0 ; i < size ; i += 3 ){
-		VertexNew tempNew;
+	
 
-		tempNew.pos = glm::vec3(vertices1[i], vertices1[i+1], vertices1[i+2]);
-		tempNew.color = glm::vec4(colors1[i], colors1[i + 1], colors1[i + 2], colors1[i + 3]);
-		tempNew.vertexNormal = glm::vec3( normals1[i], normals1[i + 1], normals1[i + 2]);
-		tempNew.lightPos = LightPosition;
+	//glm::mat4* modelMat = (glm::mat4*)(((uint64_t)_app.uboDataDynamic.model + (120 * _app.dynamicAlignment)));
+	//glm::mat4* modelMat1 = (glm::mat4*)(((uint64_t)_app.uboDataDynamic.model + (121 * _app.dynamicAlignment)));
+	
+	//*modelMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	//*modelMat = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 1.0f * (time * 0.12)));
+	//*modelMat1 = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 1.0f * (time * 0.12)));
+	//std::cout << time << std::endl;
 
-		_app.vertices.push_back(tempNew);
-		_app.indices.push_back(_app.vertices.size());
+	for (int i = 0; i < numberOfSpheres; ++i) {
+		glm::mat4* modelMat = (glm::mat4*)(((uint64_t)_app.uboDataDynamic.model + (i * _app.dynamicAlignment)));
+
+		*modelMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		//*modelMat = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 0.4f ));
 	}
 }
-*/
 
 void mainLoop(MainVulkApplication & _app) {
 

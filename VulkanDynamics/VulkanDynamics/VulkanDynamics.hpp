@@ -20,6 +20,7 @@
 #define GLM_FORCE_RADIANS
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_ENABLE_EXPERIMENTAL
+#define GLM_GTC_matrix_transform
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/hash.hpp>
@@ -35,6 +36,7 @@
 #include <GLFW/glfw3.h>
 
 #include "ValidationLayers.hpp"
+#include "util/util_init.hpp"
 
 
 struct QueueFamilyIndices {
@@ -115,12 +117,6 @@ struct UniformBufferObject {
 	alignas(16) glm::mat4 model;
 	alignas(16) glm::mat4 view;
 	alignas(16) glm::mat4 proj;
-};
-// CHANGE
-struct UniformBufferObjectNew {
-	alignas(16) glm::mat4 model;
-	alignas(16) glm::mat4 view;
-	alignas(16) glm::mat4 proj;
 	alignas(4) glm::mat3 normalMatrix;
 };
 /* // Lets not include the alignment for now
@@ -158,6 +154,8 @@ struct UniformBufferObjectDynamic {
 	glm::mat4 * model = nullptr;
 	//glm::mat4 model;
 };
+
+struct sample_info info = {};
 
 
 void printDeviceProperties(const VkPhysicalDeviceProperties  & dP) {
@@ -276,7 +274,7 @@ private:
 	std::vector<VkDescriptorSet> descriptorSets;
 
 	// CHANGE
-	UniformBufferObjectNew ubo;
+	UniformBufferObject ubo;
 	UniformFragmentObject ufo;
 	UniformBufferObjectDynamic uboDataDynamic;
 
@@ -290,11 +288,6 @@ private:
 	//VkSemaphore renderFinishedSemaphores;
 	//VkFence inFlightFences;
 
-	//VkImage textureImage;
-	//VkDeviceMemory textureImageMemory;
-	//VkImageView textureImageView;
-	//VkSampler textureSampler;
-
 	size_t currentFrame = 0;
 
 	bool framebufferResized = false;
@@ -307,6 +300,7 @@ private:
 		window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
 		glfwSetWindowUserPointer(window, this);
 		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
+		
 	}
 
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
@@ -314,9 +308,14 @@ private:
 		app->framebufferResized = true;
 	}
 
+	
+
 	void initVulkan() {
+		
 		createInstance();
+		
 		setupDebugMessenger();
+		
 		createSurface();
 		pickPhysicalDevice();
 		createLogicalDevice();
@@ -328,7 +327,6 @@ private:
 		createCommandPool();
 		createDepthResources();
 		createFramebuffers();
-
 
 		loadModel();
 		createVertexBuffer();
@@ -411,7 +409,7 @@ private:
 		vkDestroyDevice(device, nullptr);
 
 		if (enableValidationLayers) {
-			DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
+			//DestroyDebugUtilsMessengerEXT(instance, debugMessenger, nullptr);
 		}
 
 		vkDestroySurfaceKHR(instance, surface, nullptr);
@@ -481,7 +479,7 @@ private:
 
 		VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-		createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+		createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT  |  VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 		createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
 		createInfo.pfnUserCallback = debugCallback;
 
@@ -1088,9 +1086,7 @@ private:
 			throw std::runtime_error(warn + err);
 		}
 
-		std::unordered_map<VertexNew, uint32_t> uniqueVertices = {};
-
-		int numberOfPoints = 0;
+		std::unordered_map<Vertex, uint32_t> uniqueVertices = {};
 
 		int numberOfPoints = 0;
 
@@ -1228,6 +1224,7 @@ private:
 		if (minUboAlignment > 0) {
 			dynamicAlignment = (dynamicAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
 		}
+		dynamicAlignment = minUboAlignment;
 
 		bufferDynamicSize = numberOfSpheres * dynamicAlignment;
 		//bufferDynamicSize = numberOfSpheres * sizeof(glm::mat4);
@@ -1240,9 +1237,6 @@ private:
 			createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
 			createBuffer(bufferFragSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformFragBuffers[i], uniformFragBuffersMemory[i]);
 			createBuffer(bufferDynamicSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformDynamicBuffers[i], uniformDynamicBuffersMemory[i]);
-			
-
-
 		}
 		*/
 		createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[0], uniformBuffersMemory[0]);
@@ -1259,7 +1253,7 @@ private:
 		poolSizes[0].descriptorCount = 2;
 		poolSizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 		//poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
-		poolSizes[0].descriptorCount = 1;
+		poolSizes[1].descriptorCount = 1;
 
 
 		VkDescriptorPoolCreateInfo poolInfo = {};
@@ -1357,9 +1351,9 @@ private:
 		VkDescriptorBufferInfo bufferDynamicInfo = {};
 		bufferDynamicInfo.buffer = uniformDynamicBuffers[0];
 		bufferDynamicInfo.offset = 0;
-		//bufferDynamicInfo.range = sizeof(glm::mat4);
+		bufferDynamicInfo.range = sizeof(glm::mat4);
 		//bufferDynamicInfo.range = bufferDynamicSize;
-		bufferDynamicInfo.range = sizeof(uboDataDynamic);
+		//bufferDynamicInfo.range = sizeof(uboDataDynamic);
 
 		std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
 
@@ -1488,6 +1482,14 @@ private:
 			throw std::runtime_error("failed to allocate command buffers!");
 		}
 
+		/*
+		VkMemoryBarrier _VkMemoryBarrier = {};
+		_VkMemoryBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+		_VkMemoryBarrier.srcAccessMask =  VK_ACCESS_HOST_WRITE_BIT;
+		_VkMemoryBarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
+		*/
+		//std::vector< VkMemoryBarrier> _VkMemoryBarrierArray(1, _VkMemoryBarrier);
+
 		for (size_t i = 0; i < commandBuffers.size(); i++) {
 			VkCommandBufferBeginInfo beginInfo = {};
 			beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1520,22 +1522,32 @@ private:
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
 
 			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
-			for (uint32_t j = 0; j < numberOfSpheres; j++)
-			{
+			for (uint32_t j = 0; j < numberOfSpheres; j++) {
 				// One dynamic offset per dynamic descriptor to offset into the ubo containing all model matrices
 				uint32_t dynamicOffset = j * static_cast<uint32_t>(dynamicAlignment);
 				// Bind the descriptor set for rendering a mesh using the dynamic offset
 
 				//vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 1, &dynamicOffset);
 				vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[0], 1, &dynamicOffset);
-
-
-				vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+				
+				//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+				vkCmdDrawIndexed(commandBuffers[i], 240, 1, j * 240, 0, 0);
 			}
 			//vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
 			//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 
+			//create a memory barrier for the dynamic memory
+			/*
+			vkCmdPipelineBarrier(
+				commandBuffers[i],
+				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+				0,
+				_VkMemoryBarrierArray.size(),
+				_VkMemoryBarrierArray.data(),
+				0, NULL, 0 , NULL);
+				*/
 			vkCmdEndRenderPass(commandBuffers[i]);
 
 			if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {
@@ -1625,13 +1637,11 @@ private:
 		memcpy(data2, &ufo, sizeof(ufo));
 		vkUnmapMemory(device, uniformFragBuffersMemory[currentImage]);
 
-
 		void * data3;
 		vkMapMemory(device, uniformDynamicBuffersMemory[currentImage], 0, bufferDynamicSize, 0, &data3);
-		memcpy(data3, &uboDataDynamic.model, bufferDynamicSize);
+		memcpy(data3, uboDataDynamic.model, bufferDynamicSize);
 		vkUnmapMemory(device, uniformDynamicBuffersMemory[currentImage]);
-		
-
+	
 	}
 
 	void drawFrame() {
@@ -1640,8 +1650,7 @@ private:
 
 		uint32_t imageIndex;
 		VkResult result = vkAcquireNextImageKHR(device, swapChain, std::numeric_limits<uint64_t>::max(), imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
-		
-
+	
 		if (result == VK_ERROR_OUT_OF_DATE_KHR) {
 			recreateSwapChain();
 			return;
@@ -1650,7 +1659,7 @@ private:
 			throw std::runtime_error("failed to acquire swap chain image!");
 		}
 
-		std::cout << "imageIndex : " << imageIndex << std::endl;
+		//std::cout << "imageIndex : " << imageIndex << std::endl;
 		updateUniformBuffer(imageIndex);
 
 		VkSubmitInfo submitInfo = {};
@@ -1671,14 +1680,15 @@ private:
 
 		vkResetFences(device, 1, &inFlightFences[currentFrame]);
 		
-
 		VkResult returnThis = vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]);
-
 
 		//if (vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]) != VK_SUCCESS) {
 		if (returnThis != VK_SUCCESS) {
-			throw std::runtime_error("failed to submit draw command buffer!");
+			const std::string _errorString = "failed to submit draw command buffer! Reason : " + std::to_string (returnThis );
+			throw std::runtime_error(_errorString);
 		}
+
+		//std::cout << std::to_string(returnThis) << std::endl;
 
 		VkPresentInfoKHR presentInfo = {};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
