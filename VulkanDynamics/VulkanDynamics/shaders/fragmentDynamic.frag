@@ -4,7 +4,6 @@
 layout(set = 0, binding = 1) uniform UniformFragBufferObject {
 	vec3 Ambient;
 	vec3 LightColor;
-    vec3 LightPosition; // location of the light, eye space
 	float Shininess;
 	float Strength;
 	vec3 EyeDirection;
@@ -58,7 +57,7 @@ void main() {
 
 	vec3 rgb = min(fragColor.rgb * scatteredLight ,vec3(1.0));
 
-    outColor = vec4 ( scatteredLight, 1.0f );
+    outColor = vec4 ( rgb, 1.0f );
 	//outColor = vec4 ( ufbo.LightPosition  , 1.0f );
 	//outColor = vec4 ( vec3 (0.0, 0.0 , 1.0  ) , 1.0f );
 	

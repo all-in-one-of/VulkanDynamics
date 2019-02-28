@@ -90,7 +90,6 @@ void readInput_callback(GLFWwindow* window, int key, int scancode, int action, i
 }
 
 void mouse_cursor_callback(GLFWwindow* window, double xpos, double ypos) {
-	
 	pointx = xpos;
 	pointy = ypos;
 }

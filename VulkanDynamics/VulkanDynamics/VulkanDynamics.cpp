@@ -19,7 +19,7 @@ glm::mat4 viewMatrix;
 glm::mat4 eyeviewMatrix;
 glm::vec3 ambientLight(0.1f, 0.1f, 0.1f);
 glm::vec3 lightColor ( 1.0f, 1.0f, 1.0f );
-glm::vec3 LightPosition ( 0.0f, 0.0f, 1.0f );
+glm::vec3 LightPosition ( 0.0f, -5.0f, 0.0f );
 float Shininess = 140.0f;
 float Strength = 60.0f;
 glm::vec3 EyeDirection ( 0.0f,1.0f, -3.0f );
@@ -36,20 +36,18 @@ glm::vec3 centerLoc(0.0, 0.0, 0.0);
 glm::vec3 up(0.0, 0.0, 1.0);
 float fov = glm::radians<float>(45.0f);
 
-
-
 //need to load in the value of the uniform buffers for the frag and vert shader + load attributes
 void loadInitialVariables(MainVulkApplication & _app) {
 	_app.ubo.model = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	_app.ubo.view = glm::lookAt(mainEyeLoc, centerLoc, up);
 	_app.ubo.proj = glm::perspective(fov, _app.swapChainExtent.width / (float)_app.swapChainExtent.height, 0.1f, 9.0f);
 	_app.ubo.proj[1][1] *= -1;
-	glm::mat3 viewMatrix3x3(_app.ubo.view);
+	glm::mat3 viewMatrix3x3(_app.ubo.view * _app.ubo.model);
 	_app.ubo.normalMatrix = glm::inverseTranspose(viewMatrix3x3);
+	_app.ubo.lightPos = LightPosition;
 
 	_app.ufo.Ambient = ambientLight;
 	_app.ufo.LightColor = lightColor;
-	_app.ufo.LightPosition = LightPosition;
 	_app.ufo.Reflectivity = Shininess;
 	_app.ufo.Strength = Strength;
 	_app.ufo.EyeDirection = EyeDirection;
@@ -70,9 +68,9 @@ void loadInitialVariables(MainVulkApplication & _app) {
 }
 
 void updateUniformBuffer(MainVulkApplication & _app) {
-	_app.ubo.view = glm::lookAt(mainEyeLoc, centerLoc, up);
-	_app.ubo.proj = glm::perspective(fov, _app.swapChainExtent.width / (float)_app.swapChainExtent.height, 0.1f, 10.0f);
-	_app.ubo.proj[1][1] *= -1;
+	//_app.ubo.view = glm::lookAt(mainEyeLoc, centerLoc, up);
+	//_app.ubo.proj = glm::perspective(fov, _app.swapChainExtent.width / (float)_app.swapChainExtent.height, 0.1f, 10.0f);
+	//_app.ubo.proj[1][1] *= -1;
 	//_app.ubo.model = glm::rotate(glm::mat4(1.0f),  glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	//_app.ubo.model = glm::mat4(1.0f);
 
@@ -81,21 +79,10 @@ void updateUniformBuffer(MainVulkApplication & _app) {
 	auto currentTime = std::chrono::high_resolution_clock::now();
 	float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
 
-	
-
-	//glm::mat4* modelMat = (glm::mat4*)(((uint64_t)_app.uboDataDynamic.model + (120 * _app.dynamicAlignment)));
-	//glm::mat4* modelMat1 = (glm::mat4*)(((uint64_t)_app.uboDataDynamic.model + (121 * _app.dynamicAlignment)));
-	
-	//*modelMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-	//*modelMat = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 1.0f * (time * 0.12)));
-	//*modelMat1 = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 1.0f * (time * 0.12)));
-	//std::cout << time << std::endl;
-
 	for (int i = 0; i < numberOfSpheres; ++i) {
-		glm::mat4* modelMat = (glm::mat4*)(((uint64_t)_app.uboDataDynamic.model + (i * _app.dynamicAlignment)));
+		//glm::mat4* modelMat = (glm::mat4*)(((uint64_t)_app.uboDataDynamic.model + (i * _app.dynamicAlignment)));
 
-		*modelMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		//*modelMat = glm::translate(glm::mat4(), glm::vec3(0.0f, 0.0f, 0.4f ));
+		//*modelMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	}
 }
 
@@ -116,7 +103,72 @@ void mainLoop(MainVulkApplication & _app) {
 	vkDeviceWaitIdle(_app.device);
  }
 
+void solveDynamics() {
+
+	glm::vec3 x1 (0.0, 0.0, 1.0);
+	glm::vec3 xc (0.0, 0.0, 0.0);
+	glm::vec3 xOrig = x1;
+
+	glm::vec3 force(0.0, 0.2, 0.0);
+	glm::vec3 velocity(0.0, 0.0, 0.0);
+
+	glm::vec3 lagrange(0.0f, 0.0f, 0.0f);
+
+	float timeStep = 1.0 / 30.0;
+
+	int iterations = 0;
+
+	while (true) {
+
+		if (iterations > 0) force = glm::vec3(0.0f, 0.0f, 0.0f);
+		iterations++;
+
+		glm::vec3 constraint = abs(x1 - xc) - glm::vec3(1.0f, 1.0f, 1.0f);
+		glm::vec3 dotConstraint = (x1 - xc) / (abs(x1 - xc));
+		if (abs(x1 - xc).x == 0.0) dotConstraint.x = 0.0 ;
+		if (abs(x1 - xc).y == 0.0) dotConstraint.y = 0.0;
+		if (abs(x1 - xc).z == 0.0) dotConstraint.z = 0.0;
+		glm::vec3 JW = dotConstraint * glm::mat3x3(1.0);
+
+		float JWJt = JW.x * dotConstraint.x + JW.y * dotConstraint.y + JW.z * dotConstraint.z;
+
+		glm::vec3 dotdotConstraint = (-(x1 * x1) + (2.0f * x1 * xc) - (xc * xc)) / (abs(x1 - xc) * abs(x1 - xc) * abs(x1 - xc));
+		if ((abs(x1 - xc) * abs(x1 - xc) * abs(x1 - xc)).x == 0.0) dotdotConstraint.x = 0.0;
+		if ((abs(x1 - xc) * abs(x1 - xc) * abs(x1 - xc)).y == 0.0) dotdotConstraint.y = 0.0;
+		if ((abs(x1 - xc) * abs(x1 - xc) * abs(x1 - xc)).z == 0.0) dotdotConstraint.z = 0.0;
+
+		//glm::vec3 dotdotConstraint = -( x1 / abs ( x1 - xc ) ) + ( xc / abs ( x1 - xc ) );
+		//if ((abs(x1 - xc)).x == 0.0) dotdotConstraint.x = 0.0;
+		//if ((abs(x1 - xc)).y == 0.0) dotdotConstraint.y = 0.0;
+		//if ((abs(x1 - xc)).z == 0.0) dotdotConstraint.z = 0.0;
+		
+		float dotJdotQ = dotdotConstraint.x * velocity.x + dotdotConstraint.y * velocity.y + dotdotConstraint.z * velocity.z;
+		dotJdotQ = dotJdotQ * -1.0;
+
+		float JWQ = JW.x * force.x + JW.y * force.y + JW.z * force.z;
+		JWQ = JWQ * -1.0f;
+
+		lagrange = (dotJdotQ + JWQ - ( 1.0f * constraint) - ( 1.0f * dotConstraint)) / JWJt;
+
+		glm::vec3 constraintForce(lagrange.x * dotConstraint.x, lagrange.y * dotConstraint.y, lagrange.z * dotConstraint.z);
+		force += constraintForce;
+		force = glm::normalize(force);
+
+		x1.x = x1.x + (velocity.x * timeStep) + (((timeStep * timeStep) * force.x) / 2.0);
+		x1.y = x1.y + (velocity.y * timeStep) + (((timeStep * timeStep) * force.y) / 2.0);
+		x1.z = x1.z + (velocity.z * timeStep) + (((timeStep * timeStep) * force.z) / 2.0);
+
+		velocity = (x1 - xOrig) / timeStep;
+		xOrig = x1;
+		velocity = glm::normalize(velocity);
+
+		std::cout << x1.x << " : " << x1.y << " : " << x1.z << std::endl;
+	}
+}
+
 int main() {
+
+	//solveDynamics();
 	MainVulkApplication app;
 
 	try {

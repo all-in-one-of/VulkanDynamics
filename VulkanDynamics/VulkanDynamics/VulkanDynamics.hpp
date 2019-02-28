@@ -30,14 +30,12 @@
 #define TINYOBJLOADER_IMPLEMENTATION
 #include <TinyObjectLoader/tiny_obj_loader.h>
 
-#include <glm/glm.hpp>
 #include <vulkan/vulkan.h>
 #include <vulkan/vulkan.hpp>
 #include <GLFW/glfw3.h>
 
 #include "ValidationLayers.hpp"
 #include "util/util_init.hpp"
-
 
 struct QueueFamilyIndices {
 	std::optional<uint32_t> graphicsFamily;
@@ -57,11 +55,9 @@ struct SwapChainSupportDetails {
 // CHANGE
 struct Vertex {
 	glm::vec3 color;
-
 	glm::vec3 vertexNormal;
 	glm::vec3 pos;
-	glm::vec3 lightPos;
-
+	
 	static VkVertexInputBindingDescription getBindingDescription() {
 		VkVertexInputBindingDescription bindingDescription = {};
 		bindingDescription.binding = 0;
@@ -71,8 +67,8 @@ struct Vertex {
 		return bindingDescription;
 	}
 
-	static std::array<VkVertexInputAttributeDescription, 4> getAttributeDescriptions() {
-		std::array<VkVertexInputAttributeDescription, 4> attributeDescriptions = {};
+	static std::array<VkVertexInputAttributeDescription, 3> getAttributeDescriptions() {
+		std::array<VkVertexInputAttributeDescription, 3> attributeDescriptions = {};
 
 		attributeDescriptions[0].binding = 0;
 		attributeDescriptions[0].location = 0;
@@ -89,14 +85,8 @@ struct Vertex {
 		attributeDescriptions[2].format = VK_FORMAT_R32G32B32_SFLOAT;
 		attributeDescriptions[2].offset = offsetof(Vertex, pos);
 
-		attributeDescriptions[3].binding = 0;
-		attributeDescriptions[3].location = 3;
-		attributeDescriptions[3].format = VK_FORMAT_R32G32B32_SFLOAT;
-		attributeDescriptions[3].offset = offsetof(Vertex, lightPos);
-
 		return attributeDescriptions;
 	}
-
 
 	bool operator==(const Vertex& other) const {
 
@@ -114,32 +104,16 @@ namespace std {
 }
 
 struct UniformBufferObject {
-	alignas(16) glm::mat4 model;
-	alignas(16) glm::mat4 view;
-	alignas(16) glm::mat4 proj;
-	alignas(4) glm::mat3 normalMatrix;
+	glm::mat4 model;
+	glm::mat4 view;
+	glm::mat4 proj;
+	glm::mat3 normalMatrix;
+	glm::vec3 lightPos;
 };
-/* // Lets not include the alignment for now
-struct UniformFragmentObject {
-	alignas(16) glm::vec3 Ambient;
-	alignas(16) glm::vec3 LightColor;
-	alignas(16) glm::vec3 LightPosition;
-	alignas(4)  float Reflectivity;
-	alignas(4)  float Strength;
-	alignas(16) glm::vec3 EyeDirection;
-	alignas(4)  float ConstantAttenuation;
-	alignas(4)  float LinearAttenuation;
-	alignas(4)  float QuadraticAttenuation;
-	alignas(16) glm::mat4 viewMatrix;
-	alignas(16) glm::mat4 eyeViewMatrix;
-};
-*/
-
 
 struct UniformFragmentObject {
 	glm::vec3 Ambient;
 	glm::vec3 LightColor;
-	glm::vec3 LightPosition;
 	float Reflectivity;
 	float Strength;
 	glm::vec3 EyeDirection;
@@ -156,7 +130,6 @@ struct UniformBufferObjectDynamic {
 };
 
 struct sample_info info = {};
-
 
 void printDeviceProperties(const VkPhysicalDeviceProperties  & dP) {
 
@@ -177,12 +150,10 @@ void printDeviceProperties(const VkPhysicalDeviceProperties  & dP) {
 	cout << "maxUniformBufferRange : " << dP.limits.maxUniformBufferRange << endl; 
 }
 
-
 const int WIDTH = 800;
 const int HEIGHT = 600;
 
 const int numberOfSpheres = 481;
-
 
 // CHANGE
 //const std::string MODEL_PATH = "models/chalet.obj";
@@ -197,13 +168,11 @@ const std::vector<const char*> deviceExtensions = {
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME
 };
 
-
 class MainVulkApplication {
 	friend void mainLoop(MainVulkApplication & );
 	friend void updateUniformBuffer(MainVulkApplication & );
 	friend void loadInitialVariables(MainVulkApplication & );
 	
-
 public:
 	void setup() {
 		initWindow();
@@ -278,7 +247,6 @@ private:
 	UniformFragmentObject ufo;
 	UniformBufferObjectDynamic uboDataDynamic;
 
-
 	std::vector<VkCommandBuffer> commandBuffers;
 
 	std::vector<VkSemaphore> imageAvailableSemaphores;
@@ -299,16 +267,13 @@ private:
 
 		window = glfwCreateWindow(WIDTH, HEIGHT, "Vulkan", nullptr, nullptr);
 		glfwSetWindowUserPointer(window, this);
-		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);
-		
+		glfwSetFramebufferSizeCallback(window, framebufferResizeCallback);	
 	}
 
 	static void framebufferResizeCallback(GLFWwindow* window, int width, int height) {
 		auto app = reinterpret_cast<MainVulkApplication*>(glfwGetWindowUserPointer(window));
 		app->framebufferResized = true;
 	}
-
-	
 
 	void initVulkan() {
 		
@@ -1136,14 +1101,14 @@ private:
 				v2.color = { 1.0f, 1.0f, 1.0f };
 				v3.color = { 1.0f, 1.0f, 1.0f };
 
-				//glm::vec3 triNormal = glm::normalize ( glm::cross((v2.pos - v1.pos), (v3.pos - v1.pos)) );
-				glm::vec3 triNormal = glm::normalize(glm::cross((v3.pos - v1.pos), (v2.pos - v1.pos)));
+				glm::vec3 triNormal = glm::normalize ( glm::cross((v2.pos - v1.pos), (v3.pos - v1.pos)) );
+				//glm::vec3 triNormal = glm::normalize(glm::cross((v3.pos - v1.pos), (v2.pos - v1.pos)));
 
 				v1.vertexNormal = v2.vertexNormal = v3.vertexNormal = triNormal;
 
-				v1.lightPos = { 0.0f, -3.0f, 0.0f };
-				v2.lightPos = { 0.0f, -3.0f, 0.0f };
-				v3.lightPos = { 0.0f, -3.0f, 0.0f };
+				//v1.lightPos = { 0.0f, -3.0f, 5.0f };
+				//v2.lightPos = { 0.0f, -3.0f, 5.0f };
+				//v3.lightPos = { 0.0f, -3.0f, 5.0f };
 
 				vertices.push_back(v1);
 				vertices.push_back(v2);
