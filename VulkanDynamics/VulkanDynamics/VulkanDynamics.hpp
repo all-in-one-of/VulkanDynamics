@@ -89,9 +89,7 @@ struct Vertex {
 	}
 
 	bool operator==(const Vertex& other) const {
-
-		//return pos == other.pos && color == other.color && vertexNormal == other.vertexNormal && lightPos == other.lightPos ;
-		return pos == other.pos && color == other.color;
+		return pos == other.pos && color == other.color && vertexNormal == other.vertexNormal;
 	}
 };
 
@@ -107,26 +105,25 @@ struct UniformBufferObject {
 	glm::mat4 model;
 	glm::mat4 view;
 	glm::mat4 proj;
-	glm::mat3 normalMatrix;
-	glm::vec3 lightPos;
+	glm::mat4 normalMatrix;
+	glm::vec4 lightPos;
 };
 
 struct UniformFragmentObject {
-	glm::vec3 Ambient;
-	glm::vec3 LightColor;
+	glm::vec4 Ambient;
+	glm::vec4 LightColor;
 	float Reflectivity;
 	float Strength;
-	glm::vec3 EyeDirection;
+	glm::vec4 EyeDirection;
 	float ConstantAttenuation;
 	float LinearAttenuation;
 	float QuadraticAttenuation;
-	glm::mat3 viewMatrix;
-	glm::mat3 eyeViewMatrix;
+	glm::mat4 viewMatrix;
+	glm::mat4 eyeViewMatrix;
 };
 
 struct UniformBufferObjectDynamic {
 	glm::mat4 * model = nullptr;
-	//glm::mat4 model;
 };
 
 struct sample_info info = {};
@@ -161,7 +158,6 @@ const std::string MODEL_PATH = "models/FelModelReal.obj";
 //const std::string MODEL_PATH = "models/FelSimple.obj";
 //const std::string TEXTURE_PATH = "textures/chalet.jpg";
 
-//const int MAX_FRAMES_IN_FLIGHT = 2;
 const int ResourcesCount = 2;
 
 const std::vector<const char*> deviceExtensions = {
@@ -546,8 +542,6 @@ private:
 		if (swapChainSupport.capabilities.maxImageCount > 0 && imageCount > swapChainSupport.capabilities.maxImageCount) {
 			imageCount = swapChainSupport.capabilities.maxImageCount;
 		}
-		imageCount = 2; // fix the number of swap chain images to 1
-
 
 		VkSwapchainCreateInfoKHR createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -715,9 +709,6 @@ private:
 
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
 		vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-
-		//auto bindingDescription = Vertex::getBindingDescription();
-		//auto attributeDescriptions = Vertex::getAttributeDescriptions();
 
 		auto bindingDescription = Vertex::getBindingDescription();
 		auto attributeDescriptions = Vertex::getAttributeDescriptions();
@@ -1168,7 +1159,6 @@ private:
 		VkDeviceSize bufferSize = sizeof(UniformBufferObject);
 
 		VkDeviceSize bufferFragSize = sizeof(UniformFragmentObject);
-		//VkDeviceSize bufferDynamicSize = sizeof(UniformBufferObjectDynamicNew);
 
 		uniformBuffers.resize(swapChainImages.size());
 		uniformBuffersMemory.resize(swapChainImages.size());
@@ -1184,7 +1174,6 @@ private:
 
 		size_t minUboAlignment = physicalProperties.limits.minUniformBufferOffsetAlignment;
 
-
 		dynamicAlignment = sizeof(glm::mat4);
 		if (minUboAlignment > 0) {
 			dynamicAlignment = (dynamicAlignment + minUboAlignment - 1) & ~(minUboAlignment - 1);
@@ -1197,16 +1186,16 @@ private:
 		uboDataDynamic.model = (glm::mat4*)malloc(bufferDynamicSize);
 		assert(uboDataDynamic.model);
 
-		/*
+		
 		for (size_t i = 0; i < swapChainImages.size(); i++) {
 			createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
 			createBuffer(bufferFragSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformFragBuffers[i], uniformFragBuffersMemory[i]);
 			createBuffer(bufferDynamicSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformDynamicBuffers[i], uniformDynamicBuffersMemory[i]);
 		}
-		*/
-		createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[0], uniformBuffersMemory[0]);
-		createBuffer(bufferFragSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformFragBuffers[0], uniformFragBuffersMemory[0]);
-		createBuffer(bufferDynamicSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformDynamicBuffers[0], uniformDynamicBuffersMemory[0]);
+		
+		//createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[0], uniformBuffersMemory[0]);
+		//createBuffer(bufferFragSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformFragBuffers[0], uniformFragBuffersMemory[0]);
+		//createBuffer(bufferDynamicSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformDynamicBuffers[0], uniformDynamicBuffersMemory[0]);
 
 	}
 
@@ -1220,13 +1209,12 @@ private:
 		//poolSizes[1].descriptorCount = static_cast<uint32_t>(swapChainImages.size());
 		poolSizes[1].descriptorCount = 1;
 
-
 		VkDescriptorPoolCreateInfo poolInfo = {};
 		poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 		poolInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
 		poolInfo.pPoolSizes = poolSizes.data();
-		//poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
-		poolInfo.maxSets = 1;
+		poolInfo.maxSets = static_cast<uint32_t>(swapChainImages.size());
+		//poolInfo.maxSets = 1;
 
 		if (vkCreateDescriptorPool(device, &poolInfo, nullptr, &descriptorPool) != VK_SUCCESS) {
 			throw std::runtime_error("failed to create descriptor pool!");
@@ -1235,28 +1223,27 @@ private:
 	
 	// CHANGE
 	void createDescriptorSets() {
-		//std::vector<VkDescriptorSetLayout> layouts(swapChainImages.size(), descriptorSetLayout);
+		std::vector<VkDescriptorSetLayout> layouts(swapChainImages.size(), descriptorSetLayout);
 		VkDescriptorSetAllocateInfo allocInfo = {};
 		allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 		allocInfo.descriptorPool = descriptorPool;
-		//allocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImages.size());
-		allocInfo.descriptorSetCount = 1;
-		//allocInfo.pSetLayouts = layouts.data();
-		allocInfo.pSetLayouts = &descriptorSetLayout;
+		allocInfo.descriptorSetCount = static_cast<uint32_t>(swapChainImages.size());
+		//allocInfo.descriptorSetCount = 1;
+		allocInfo.pSetLayouts = layouts.data();
+		//allocInfo.pSetLayouts = &descriptorSetLayout;
 
-		//descriptorSets.resize(swapChainImages.size());
-		descriptorSets.resize(1);
+		descriptorSets.resize(swapChainImages.size());
+		//descriptorSets.resize(1);
 		if (vkAllocateDescriptorSets(device, &allocInfo, descriptorSets.data()) != VK_SUCCESS) {
 			throw std::runtime_error("failed to allocate descriptor sets!");
 		}
-		/*
+		
 		for (size_t i = 0; i < swapChainImages.size(); i++) {
+
 			VkDescriptorBufferInfo bufferInfo = {};
 			bufferInfo.buffer = uniformBuffers[i];
 			bufferInfo.offset = 0;
-
 			bufferInfo.range = sizeof(UniformBufferObject);
-
 
 			VkDescriptorBufferInfo bufferFragInfo = {};
 			bufferFragInfo.buffer = uniformFragBuffers[i];
@@ -1268,8 +1255,7 @@ private:
 			bufferDynamicInfo.offset = 0;
 			//bufferDynamicInfo.range = sizeof(glm::mat4);
 			//bufferDynamicInfo.range = bufferDynamicSize;
-			bufferDynamicInfo.range = sizeof(uboDataDynamic);
-
+			bufferDynamicInfo.range = sizeof(glm::mat4);
 
 			std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
 
@@ -1289,7 +1275,6 @@ private:
 			descriptorWrites[1].descriptorCount = 1;
 			descriptorWrites[1].pBufferInfo = &bufferFragInfo;
 
-
 			descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 			descriptorWrites[2].dstSet = descriptorSets[i];
 			descriptorWrites[2].dstBinding = 2;
@@ -1301,8 +1286,8 @@ private:
 
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
-		*/
 		
+		/*
 		VkDescriptorBufferInfo bufferInfo = {};
 		bufferInfo.buffer = uniformBuffers[0];
 		bufferInfo.offset = 0;
@@ -1348,7 +1333,7 @@ private:
 		descriptorWrites[2].pNext = NULL;
 
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-		
+		*/
 	}
 		
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
@@ -1492,8 +1477,8 @@ private:
 				uint32_t dynamicOffset = j * static_cast<uint32_t>(dynamicAlignment);
 				// Bind the descriptor set for rendering a mesh using the dynamic offset
 
-				//vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 1, &dynamicOffset);
-				vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[0], 1, &dynamicOffset);
+				vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 1, &dynamicOffset);
+				//vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[0], 1, &dynamicOffset);
 				
 				//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 				vkCmdDrawIndexed(commandBuffers[i], 240, 1, j * 240, 0, 0);
@@ -1591,7 +1576,7 @@ private:
 		memoryRange.offset = 0;
 		vkFlushMappedMemoryRanges(device, 1, &memoryRange);
 		*/
-		currentImage = 0;
+		//currentImage = 0;
 		void* data;
 		vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
 		memcpy(data, &ubo, sizeof(ubo));
@@ -1612,7 +1597,6 @@ private:
 	void drawFrame() {
 		vkWaitForFences(device, 1, &inFlightFences[currentFrame], VK_TRUE, std::numeric_limits<uint64_t>::max());
 		
-
 		uint32_t imageIndex;
 		VkResult result = vkAcquireNextImageKHR(device, swapChain, std::numeric_limits<uint64_t>::max(), imageAvailableSemaphores[currentFrame], VK_NULL_HANDLE, &imageIndex);
 	

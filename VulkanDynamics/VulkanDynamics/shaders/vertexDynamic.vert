@@ -1,18 +1,17 @@
 #version 450
-//#extension GL_ARB_separate_shader_objects : enable
 
 layout(set = 0, binding = 0) uniform UniformBufferObject {
     mat4 model;
     mat4 view;
     mat4 proj;
-	mat3 normalMatrix ;
-	vec3 lightPos ;
+	mat4 normalMatrix ;
+	vec4 lightPos ;
 } ubo;
 
 layout(set = 0, binding = 2) uniform UniformBufferDynamicObject {
     mat4 model;
 } uboDyn;
-
+   
 layout (location = 0 ) in vec3 color;
 layout (location = 1 ) in vec3 VertexNormal;
 layout (location = 2 ) in vec3 position;
@@ -25,11 +24,14 @@ layout (location = 4 ) out vec3 NormalView;
 
 void main() {
 
-	Normal = normalize( ubo.normalMatrix *  VertexNormal);
-	//Normal = vec3 ( uboDyn.model *  vec4 ( normalize( ubo.normalMatrix *  VertexNormal), 1.0f ));
-	LightPos = ubo.lightPos;
-	//LightPos = vec3 ( ubo.proj * ubo.view * vec4 ( lightPos , 1.0f ));
+	Normal = normalize( mat3(ubo.normalMatrix) *  VertexNormal);
+	LightPos = vec3(ubo.lightPos);
     fragColor = color;
-	Position = ubo.proj * ubo.view * uboDyn.model * vec4(position, 1.0f);
+	mat4 translateToCenter = mat4 ( 1.0, 0.0, 0.0, 0.0,
+									0.0, 1.0, 0.0, -1.5,
+									0.0, 0.0, 1.0, 0.22,
+									0.0, 0.0, 0.0, 1.0 ) ;
+	Position = ubo.proj * ubo.view * uboDyn.model * transpose(translateToCenter) * vec4(position, 1.0f);
+	//Position = ubo.proj * ubo.view * uboDyn.model  * vec4(position, 1.0f);
 	gl_Position = Position ;
 }

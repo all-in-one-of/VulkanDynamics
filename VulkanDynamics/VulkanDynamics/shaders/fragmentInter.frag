@@ -14,7 +14,7 @@ layout(set = 0, binding = 1) uniform UniformFragBufferObject {
 	mat3 viewMatrix ;
 	mat3 eyeViewMatrix;
 } ufbo;
-
+ 
 layout (location = 0 ) in vec3 fragColor;
 layout (location = 1 ) in vec3 Normal;
 layout (location = 2 ) in vec4 Position;

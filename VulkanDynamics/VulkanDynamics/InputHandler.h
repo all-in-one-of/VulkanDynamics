@@ -1,5 +1,5 @@
-#ifndef  __INPUTHANDLER_H
-#define  __INPUTHANDLER_H
+#ifndef  __INPUTHANDLER_H__
+#define  __INPUTHANDLER_H__
 
 #include <stdlib.h>
 #include <iostream>
@@ -7,12 +7,11 @@
 #include <vulkan/vulkan.h>
 
 bool stopAnimation = true;
-static int lightNumber = 0;
-static int	lightMode = 0;
-static bool lightOn = false;
 int motionMode = 0;
 double startX = 0;
 double startY = 0;
+
+bool lbutton_down = false;
 
 double pointx;
 double pointy;
@@ -22,6 +21,8 @@ bool activateTrans = false;
 float lightPositionx = 0.0;
 float lightPositionz = 0.0;
 float lightPositiony = 0.0;
+float lightPositionIncrement = 0.7;
+char changeLightPos[3] = {};
 double theta = 0.0;
 double phi = 0.0;
 float eyex;
@@ -45,45 +46,37 @@ void readInput_callback(GLFWwindow* window, int key, int scancode, int action, i
 		//    kill( getpid(), SIGHUP );
 		exit(0);
 	}
-	else if (key == GLFW_KEY_O && action == GLFW_PRESS)
-		lightOn = !lightOn;
 
-	else if (key == GLFW_KEY_E && action == GLFW_PRESS)
-		lightPositiony += 1.0;
-
-	else if (key == GLFW_KEY_D && action == GLFW_PRESS)
-		lightPositiony -= 1.0;
-
-	else if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS)
-		lightPositionx += 1.0;
-
-	else if (key == GLFW_KEY_LEFT && action == GLFW_PRESS)
-		lightPositionx -= 1.0;
-
-	else if (key == GLFW_KEY_DOWN && action == GLFW_PRESS)
-		lightPositionz -= 1.0;
-
-	else if (key == GLFW_KEY_UP && action == GLFW_PRESS)
-		lightPositionz += 1.0;
-
-	else if (key == GLFW_KEY_S && action == GLFW_PRESS) {
-
+	else if (key == GLFW_KEY_E && action == GLFW_PRESS) {
+		lightPositiony = lightPositionIncrement;
+		changeLightPos[1] = 1;
 	}
-	else if (key == GLFW_KEY_S && action == GLFW_PRESS) {
 
+	else if (key == GLFW_KEY_D && action == GLFW_PRESS) {
+		lightPositiony = -lightPositionIncrement;
+		changeLightPos[1] = 1;
 	}
-	else if (key == GLFW_KEY_S && action == GLFW_PRESS) {
 
+	else if (key == GLFW_KEY_RIGHT && action == GLFW_PRESS) {
+		lightPositionx = lightPositionIncrement;
+		changeLightPos[0] = 1;
 	}
-	else if (key == GLFW_KEY_S && action == GLFW_PRESS) {
 
+	else if (key == GLFW_KEY_LEFT && action == GLFW_PRESS) {
+		lightPositionx = -lightPositionIncrement;
+		changeLightPos[0] = 1;
 	}
-	else if (key == GLFW_KEY_S && action == GLFW_PRESS) {
 
+	else if (key == GLFW_KEY_DOWN && action == GLFW_PRESS) {
+		lightPositionz = -lightPositionIncrement;
+		changeLightPos[2] = 1;
 	}
-	else if (key == GLFW_KEY_S && action == GLFW_PRESS) {
 
+	else if (key == GLFW_KEY_UP && action == GLFW_PRESS) {
+		lightPositionz = lightPositionIncrement;
+		changeLightPos[2] = 1;
 	}
+
 	else if (key == GLFW_KEY_S && action == GLFW_PRESS) {
 
 	}
@@ -92,23 +85,38 @@ void readInput_callback(GLFWwindow* window, int key, int scancode, int action, i
 void mouse_cursor_callback(GLFWwindow* window, double xpos, double ypos) {
 	pointx = xpos;
 	pointy = ypos;
+
+	if (lbutton_down) {
+		std::cout << pointx << std::endl;
+	}
 }
 
 void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
 
-	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_PRESS) {
-		std::cout << "moooo" << std::endl;
-		startX = pointx;
-		startY = pointy;
-	}
-
-	if (button == GLFW_MOUSE_BUTTON_LEFT && action == GLFW_REPEAT) {
-		std::cout << pointx << std::endl;
-		phi = phi + (pointx - startX) / 100.0;
-		startX = pointx;
-		theta = theta - (pointy - startY) / 100.0;
-		startY = pointy;
+	if (button == GLFW_MOUSE_BUTTON_LEFT ) {
+		if (GLFW_PRESS == action) {
+			lbutton_down = true;
+			startX = pointx;
+			startY = pointy;
+			
+		}
+		else if (GLFW_RELEASE == action)
+			lbutton_down = false;
 	}
 }
+/*
+static void mouse_callback(GLFWwindow* window, int button, int action, int mods)
+{
+	if (button == GLFW_MOUSE_BUTTON_LEFT) {
+		if (GLFW_PRESS == action)
+			lbutton_down = true;
+		else if (GLFW_RELEASE == action)
+			lbutton_down = false;
+	}
 
-#endif
+	if (lbutton_down) {
+		// do your drag here
+	}
+}
+*/
+#endif 

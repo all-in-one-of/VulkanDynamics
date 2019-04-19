@@ -1,17 +1,16 @@
 #version 450
-//#extension GL_ARB_separate_shader_objects : enable
 
 layout(set = 0, binding = 1) uniform UniformFragBufferObject {
-	vec3 Ambient;
-	vec3 LightColor;
+	vec4 Ambient;
+	vec4 LightColor;
 	float Shininess;
 	float Strength;
-	vec3 EyeDirection;
+	vec4 EyeDirection;
 	float ConstantAttenuation; // attenuation coefficients
 	float LinearAttenuation;
 	float QuadraticAttenuation;
-	mat3 viewMatrix ;
-	mat3 eyeViewMatrix;
+	mat4 viewMatrix ;
+	mat4 eyeViewMatrix;
 } ufbo;
 
 layout (location = 0 ) in vec3 fragColor;
@@ -23,43 +22,28 @@ layout (location = 4 ) in vec3 NormalView;
 layout (location = 0) out vec4 outColor;
 
 void main() {
+	vec3 lightDirectionView = normalize ( lightPos - vec3(Position));
+	float lightDistance = length(lightPos - vec3(Position));
 
-	//vec3 lightPosView = ufbo.eyeViewMatrix * ufbo.LightPosition;
-	//vec3 lightDirectionView = ufbo.LightPosition - vec3(Position);
-	vec3 lightDirectionView = lightPos - vec3(Position);
-	float lightDistance = length(lightDirectionView);
-
-	// normalize the light direction vector, so
-	// that a dot products give cosines
-	lightDirectionView = normalize ( lightDirectionView );
-
-	vec3 reflection_eye = reflect (-lightDirectionView, Normal);
-	vec3 surface_to_viewer_eye = normalize (-vec3(Position));
-
-	// model how much light is available for this fragment, specular component
-	float attenuation = 1.0 / (ufbo.ConstantAttenuation + ufbo.LinearAttenuation * lightDistance + ufbo.QuadraticAttenuation * lightDistance * lightDistance);
-
+	// model how much light is available for this fragment's specular component
+	float attenuation = 1.0f / (ufbo.ConstantAttenuation + 
+								ufbo.LinearAttenuation * lightDistance + 
+								ufbo.QuadraticAttenuation * lightDistance * lightDistance);
 	// the direction of maximum highlight also changes per fragment
-	//vec3 halfVector = normalize(lightDirectionView + ufbo.EyeDirection);
+	vec3 halfVector = normalize(lightDirectionView +   vec3( vec3(ufbo.EyeDirection) - vec3(Position) )  );
 
-	float diffuse = max(0.0, dot(Normal, lightDirectionView));
-	//float specular = max (dot (reflection_eye, surface_to_viewer_eye), 0.0);
+	float diffuse = max(0.0f, dot(Normal, lightDirectionView));
+	float specular = pow ( max (dot (Normal, halfVector), 0.0f), ufbo.Shininess );
 
-	//if (diffuse == 0.0)
-		//specular = 0.0;
-	//else
-		//specular = pow(specular, ufbo.Shininess) * ufbo.Strength;
+	// if diffuse == 0 -> specular = 0
+	specular =  specular * max ( sign ( diffuse - 0.0f ) , 0.0f );
 
-	vec3 scatteredLight = ufbo.Ambient + (ufbo.LightColor * diffuse) ;
-	//vec3 reflectedLight = ufbo.LightColor * specular * attenuation;
+	vec3 scatteredLight = vec3(ufbo.Ambient + (ufbo.LightColor * diffuse)) ;
+	//vec3 scatteredLight = vec3(ufbo.Ambient +  ufbo.LightColor);
+	vec3 reflectedLight = vec3(ufbo.LightColor * specular * attenuation);
 	
 	//vec3 rgb = min(fragColor.rgb * scatteredLight + reflectedLight ,vec3(1.0));
 
-	vec3 rgb = min(fragColor.rgb * scatteredLight ,vec3(1.0));
-
-    outColor = vec4 ( rgb, 1.0f );
-	//outColor = vec4 ( ufbo.LightPosition  , 1.0f );
-	//outColor = vec4 ( vec3 (0.0, 0.0 , 1.0  ) , 1.0f );
-	
-	
+    outColor = vec4 ( scatteredLight + reflectedLight , 1.0f );
+	//outColor = vec4 ( scatteredLight  , 1.0f );
 }
