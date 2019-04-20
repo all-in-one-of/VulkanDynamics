@@ -157,6 +157,7 @@ const int numberOfSpheres = 481;
 const std::string MODEL_PATH = "models/FelModelReal.obj";
 //const std::string MODEL_PATH = "models/FelSimple.obj";
 //const std::string TEXTURE_PATH = "textures/chalet.jpg";
+const std::string GROUND_PATH = "models/ground.obj";
 
 const int ResourcesCount = 2;
 
@@ -1047,40 +1048,8 @@ private:
 		int numberOfPoints = 0;
 
 		for (const auto& shape : shapes) {
-			/*
-			for (const auto& index : shape.mesh.indices) {
-				VertexNew vertex = {};
-
-				vertex.pos = {
-					attrib.vertices[3 * index.vertex_index + 0],
-					attrib.vertices[3 * index.vertex_index + 1],
-					attrib.vertices[3 * index.vertex_index + 2]
-				};
-
-				//vertex.texCoord = {
-					//attrib.texcoords[2 * index.texcoord_index + 0],
-					//1.0f - attrib.texcoords[2 * index.texcoord_index + 1]
-				//};
-
-				vertex.color = { 1.0f, 1.0f, 1.0f };
-
-				if (uniqueVertices.count(vertex) == 0) {
-					uniqueVertices[vertex] = static_cast<uint32_t>(vertices.size());
-					vertices.push_back(vertex);
-				}
-
-				vertex.lightPos = { 0.0f, 3.0f, -3.0f };
-
-				indices.push_back(uniqueVertices[vertex]);
-			}
-			*/
-			
-			// No unique vertices nor normal interpoaltion
-
-			int fdfdgd = 4;
 
 			for (int i = 0; i < shape.mesh.indices.size(); i += 3 ) {
-
 
 				Vertex v1, v2, v3;
 
@@ -1093,13 +1062,42 @@ private:
 				v3.color = { 1.0f, 1.0f, 1.0f };
 
 				glm::vec3 triNormal = glm::normalize ( glm::cross((v2.pos - v1.pos), (v3.pos - v1.pos)) );
-				//glm::vec3 triNormal = glm::normalize(glm::cross((v3.pos - v1.pos), (v2.pos - v1.pos)));
 
 				v1.vertexNormal = v2.vertexNormal = v3.vertexNormal = triNormal;
 
-				//v1.lightPos = { 0.0f, -3.0f, 5.0f };
-				//v2.lightPos = { 0.0f, -3.0f, 5.0f };
-				//v3.lightPos = { 0.0f, -3.0f, 5.0f };
+				vertices.push_back(v1);
+				vertices.push_back(v2);
+				vertices.push_back(v3);
+
+				indices.push_back(numberOfPoints++);
+				indices.push_back(numberOfPoints++);
+				indices.push_back(numberOfPoints++);
+			}
+		}
+
+		if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, GROUND_PATH.c_str(), 0, true)) {
+			throw std::runtime_error(warn + err);
+		}
+
+		uniqueVertices.clear();
+
+		for (const auto& shape : shapes) {
+
+			for (int i = 0; i < shape.mesh.indices.size(); i += 3) {
+
+				Vertex v1, v2, v3;
+
+				v1.pos = { attrib.vertices[3 * shape.mesh.indices[i].vertex_index + 0], attrib.vertices[3 * shape.mesh.indices[i].vertex_index + 1], attrib.vertices[3 * shape.mesh.indices[i].vertex_index + 2] };
+				v2.pos = { attrib.vertices[3 * shape.mesh.indices[i + 1].vertex_index + 0], attrib.vertices[3 * shape.mesh.indices[i + 1].vertex_index + 1], attrib.vertices[3 * shape.mesh.indices[i + 1].vertex_index + 2] };
+				v3.pos = { attrib.vertices[3 * shape.mesh.indices[i + 2].vertex_index + 0], attrib.vertices[3 * shape.mesh.indices[i + 2].vertex_index + 1], attrib.vertices[3 * shape.mesh.indices[i + 2].vertex_index + 2] };
+
+				v1.color = { 1.0f, 1.0f, 1.0f };
+				v2.color = { 1.0f, 1.0f, 1.0f };
+				v3.color = { 1.0f, 1.0f, 1.0f };
+
+				glm::vec3 triNormal = glm::normalize(glm::cross((v2.pos - v1.pos), (v3.pos - v1.pos)));
+
+				v1.vertexNormal = v2.vertexNormal = v3.vertexNormal = triNormal;
 
 				vertices.push_back(v1);
 				vertices.push_back(v2);
@@ -1470,11 +1468,13 @@ private:
 			VkBuffer vertexBuffers[] = { vertexBuffer };
 			VkDeviceSize offsets[] = { 0 };
 			vkCmdBindVertexBuffers(commandBuffers[i], 0, 1, vertexBuffers, offsets);
-
 			vkCmdBindIndexBuffer(commandBuffers[i], indexBuffer, 0, VK_INDEX_TYPE_UINT32);
+
+			uint32_t dynamicOffset;
+
 			for (uint32_t j = 0; j < numberOfSpheres; j++) {
 				// One dynamic offset per dynamic descriptor to offset into the ubo containing all model matrices
-				uint32_t dynamicOffset = j * static_cast<uint32_t>(dynamicAlignment);
+				dynamicOffset = j * static_cast<uint32_t>(dynamicAlignment);
 				// Bind the descriptor set for rendering a mesh using the dynamic offset
 
 				vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 1, &dynamicOffset);
@@ -1483,21 +1483,13 @@ private:
 				//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
 				vkCmdDrawIndexed(commandBuffers[i], 240, 1, j * 240, 0, 0);
 			}
-			//vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 0, nullptr);
 
-			//vkCmdDrawIndexed(commandBuffers[i], static_cast<uint32_t>(indices.size()), 1, 0, 0, 0);
+			//dynamicOffset = numberOfSpheres * static_cast<uint32_t>(dynamicAlignment);
 
-			//create a memory barrier for the dynamic memory
-			/*
-			vkCmdPipelineBarrier(
-				commandBuffers[i],
-				VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-				VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-				0,
-				_VkMemoryBarrierArray.size(),
-				_VkMemoryBarrierArray.data(),
-				0, NULL, 0 , NULL);
-				*/
+			//vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 1, &dynamicOffset);
+
+
+
 			vkCmdEndRenderPass(commandBuffers[i]);
 
 			if (vkEndCommandBuffer(commandBuffers[i]) != VK_SUCCESS) {

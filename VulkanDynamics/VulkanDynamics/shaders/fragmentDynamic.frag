@@ -39,11 +39,10 @@ void main() {
 	specular =  specular * max ( sign ( diffuse - 0.0f ) , 0.0f );
 
 	vec3 scatteredLight = vec3(ufbo.Ambient + (ufbo.LightColor * diffuse)) ;
-	//vec3 scatteredLight = vec3(ufbo.Ambient +  ufbo.LightColor);
 	vec3 reflectedLight = vec3(ufbo.LightColor * specular * attenuation);
 	
 	//vec3 rgb = min(fragColor.rgb * scatteredLight + reflectedLight ,vec3(1.0));
 
-    outColor = vec4 ( scatteredLight + reflectedLight , 1.0f );
-	//outColor = vec4 ( scatteredLight  , 1.0f );
+    //outColor = vec4 ( scatteredLight + reflectedLight , 1.0f );
+	outColor = vec4 ( scatteredLight  , 1.0f );
 }

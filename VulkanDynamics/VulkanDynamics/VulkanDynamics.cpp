@@ -21,8 +21,8 @@ float projMatrix[16];
 glm::mat4 viewMatrix;
 glm::mat4 eyeviewMatrix;
 glm::vec4 ambientLight(0.1f, 0.1f, 0.1f, 1.0f);
-glm::vec4 lightColor ( 0.5f, 0.5f, 0.5f, 1.0f );
-glm::vec4 LightPosition ( 1.0f, 5.0f, 0.0f, 1.0f );
+glm::vec4 lightColor ( 0.8f, 0.8f, 0.8f, 1.0f );
+glm::vec4 LightPosition ( 0.0f, 5.0f, 0.0f, 1.0f );
 float Shininess = 1.1f;
 float Strength = 60.0f;
 glm::vec4 EyeDirection ( 0.1f,1.0f, -3.0f, 1.0f );
@@ -63,16 +63,17 @@ void loadInitialVariables(MainVulkApplication & _app) {
 	for (int i = 0; i < numberOfSpheres; ++i) {
 		glm::mat4* modelMat = (glm::mat4*)(((uint64_t)_app.uboDataDynamic.model + (i * _app.dynamicAlignment)));
 
-		*modelMat = glm::mat4(1.0f);
+		*modelMat = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	}
 }
 
 void updateUniformBuffer(MainVulkApplication & _app) {
 
 	for (int i = 0; i < numberOfSpheres; ++i) {
-		//glm::mat4* modelMat = (glm::mat4*)(((uint64_t)_app.uboDataDynamic.model + (i * _app.dynamicAlignment)));
+		glm::mat4* modelMat = (glm::mat4*)(((uint64_t)_app.uboDataDynamic.model + (i * _app.dynamicAlignment)));
 
-		//*modelMat = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+		*modelMat = glm::rotate(glm::mat4(1.0f), (float)glm::radians(phi), glm::vec3(0.0f, 1.0f, 0.0f));
+		*modelMat *= glm::rotate(glm::mat4(1.0f), (float)glm::radians(theta), glm::vec3(1.0f, 0.0f, 0.0f));
 	}
 
 	if (changeLightPos[0] == 1) {

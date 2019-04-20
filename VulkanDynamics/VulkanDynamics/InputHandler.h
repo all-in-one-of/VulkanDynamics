@@ -87,7 +87,11 @@ void mouse_cursor_callback(GLFWwindow* window, double xpos, double ypos) {
 	pointy = ypos;
 
 	if (lbutton_down) {
-		std::cout << pointx << std::endl;
+
+		phi += (xpos - startX) / 10.0;
+		startX = xpos;
+		theta += (ypos - startY) / 10.0;
+		startY = ypos;
 	}
 }
 
@@ -97,26 +101,10 @@ void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
 		if (GLFW_PRESS == action) {
 			lbutton_down = true;
 			startX = pointx;
-			startY = pointy;
-			
+			startY = pointy;	
 		}
 		else if (GLFW_RELEASE == action)
 			lbutton_down = false;
 	}
 }
-/*
-static void mouse_callback(GLFWwindow* window, int button, int action, int mods)
-{
-	if (button == GLFW_MOUSE_BUTTON_LEFT) {
-		if (GLFW_PRESS == action)
-			lbutton_down = true;
-		else if (GLFW_RELEASE == action)
-			lbutton_down = false;
-	}
-
-	if (lbutton_down) {
-		// do your drag here
-	}
-}
-*/
 #endif 
