@@ -1178,23 +1178,17 @@ private:
 		}
 		dynamicAlignment = minUboAlignment;
 
-		bufferDynamicSize = numberOfSpheres * dynamicAlignment;
-		//bufferDynamicSize = numberOfSpheres * sizeof(glm::mat4);
+		// add one for ground
+		bufferDynamicSize = ( numberOfSpheres + 1 ) * dynamicAlignment;
 
 		uboDataDynamic.model = (glm::mat4*)malloc(bufferDynamicSize);
 		assert(uboDataDynamic.model);
 
-		
 		for (size_t i = 0; i < swapChainImages.size(); i++) {
 			createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[i], uniformBuffersMemory[i]);
 			createBuffer(bufferFragSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformFragBuffers[i], uniformFragBuffersMemory[i]);
 			createBuffer(bufferDynamicSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformDynamicBuffers[i], uniformDynamicBuffersMemory[i]);
 		}
-		
-		//createBuffer(bufferSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformBuffers[0], uniformBuffersMemory[0]);
-		//createBuffer(bufferFragSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformFragBuffers[0], uniformFragBuffersMemory[0]);
-		//createBuffer(bufferDynamicSize, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, uniformDynamicBuffers[0], uniformDynamicBuffersMemory[0]);
-
 	}
 
 	// CHANGE
@@ -1285,53 +1279,6 @@ private:
 			vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
 		}
 		
-		/*
-		VkDescriptorBufferInfo bufferInfo = {};
-		bufferInfo.buffer = uniformBuffers[0];
-		bufferInfo.offset = 0;
-		bufferInfo.range = sizeof(UniformBufferObject);
-
-		VkDescriptorBufferInfo bufferFragInfo = {};
-		bufferFragInfo.buffer = uniformFragBuffers[0];
-		bufferFragInfo.offset = 0;
-		bufferFragInfo.range = sizeof(UniformFragmentObject);
-
-		VkDescriptorBufferInfo bufferDynamicInfo = {};
-		bufferDynamicInfo.buffer = uniformDynamicBuffers[0];
-		bufferDynamicInfo.offset = 0;
-		bufferDynamicInfo.range = sizeof(glm::mat4);
-		//bufferDynamicInfo.range = bufferDynamicSize;
-		//bufferDynamicInfo.range = sizeof(uboDataDynamic);
-
-		std::array<VkWriteDescriptorSet, 3> descriptorWrites = {};
-
-		descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[0].dstSet = descriptorSets[0];
-		descriptorWrites[0].dstBinding = 0;
-		descriptorWrites[0].dstArrayElement = 0;
-		descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorWrites[0].descriptorCount = 1;
-		descriptorWrites[0].pBufferInfo = &bufferInfo;
-
-		descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[1].dstSet = descriptorSets[0];
-		descriptorWrites[1].dstBinding = 1;
-		descriptorWrites[1].dstArrayElement = 0;
-		descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-		descriptorWrites[1].descriptorCount = 1;
-		descriptorWrites[1].pBufferInfo = &bufferFragInfo;
-
-		descriptorWrites[2].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-		descriptorWrites[2].dstSet = descriptorSets[0];
-		descriptorWrites[2].dstBinding = 2;
-		descriptorWrites[2].dstArrayElement = 0;
-		descriptorWrites[2].descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-		descriptorWrites[2].descriptorCount = 1;
-		descriptorWrites[2].pBufferInfo = &bufferDynamicInfo;
-		descriptorWrites[2].pNext = NULL;
-
-		vkUpdateDescriptorSets(device, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data(), 0, nullptr);
-		*/
 	}
 		
 	void createBuffer(VkDeviceSize size, VkBufferUsageFlags usage, VkMemoryPropertyFlags properties, VkBuffer& buffer, VkDeviceMemory& bufferMemory) {
@@ -1484,11 +1431,11 @@ private:
 				vkCmdDrawIndexed(commandBuffers[i], 240, 1, j * 240, 0, 0);
 			}
 
-			//dynamicOffset = numberOfSpheres * static_cast<uint32_t>(dynamicAlignment);
+			//draw ground
+			dynamicOffset = numberOfSpheres * static_cast<uint32_t>(dynamicAlignment);
+			vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 1, &dynamicOffset);
 
-			//vkCmdBindDescriptorSets(commandBuffers[i], VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, 1, &descriptorSets[i], 1, &dynamicOffset);
-
-
+			vkCmdDrawIndexed(commandBuffers[i], 6, 1, numberOfSpheres * 240, 0, 0);
 
 			vkCmdEndRenderPass(commandBuffers[i]);
 
@@ -1532,42 +1479,7 @@ private:
 
 	// CHANGE
 	void updateUniformBuffer(uint32_t currentImage) {
-		//static auto startTime = std::chrono::high_resolution_clock::now();
-
-		//auto currentTime = std::chrono::high_resolution_clock::now();
-		//float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-		//UniformBufferObject ubo = {};
-		//ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		//ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-		//ubo.proj = glm::perspective(glm::radians(45.0f), swapChainExtent.width / (float)swapChainExtent.height, 0.1f, 10.0f);
-		//ubo.proj[1][1] *= -1;
-		/*
-		void* data;
-		vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);
-		memcpy(data, &ubo, sizeof(ubo));
-		vkUnmapMemory(device, uniformBuffersMemory[currentImage]);
-
-		void * data2;
-		vkMapMemory(device, uniformFragBuffersMemory[currentImage], 0, sizeof(ufo), 0, &data2);
-		memcpy(data2, &ufo, sizeof(ufo));
-		vkUnmapMemory(device, uniformFragBuffersMemory[currentImage]);
-
-		void * data3;
-		vkMapMemory(device, uniformDynamicBuffersMemory[currentImage], 0, bufferDynamicSize, 0, &data3);
-		memcpy(data3, &uboDataDynamic.model, bufferDynamicSize);
-		vkUnmapMemory(device, uniformDynamicBuffersMemory[currentImage]);
-		*/
-		/*
-		memcpy(uniformDynamicBuffersMemory[currentImage], uboDataDynamic.model, bufferDynamicSize);
-		// Flush to make changes visible to the host 
-		VkMappedMemoryRange memoryRange = {};
-		memoryRange.sType = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-		memoryRange.memory = uniformDynamicBuffersMemory[currentImage];
-		memoryRange.size = bufferDynamicSize;
-		memoryRange.offset = 0;
-		vkFlushMappedMemoryRanges(device, 1, &memoryRange);
-		*/
+	
 		//currentImage = 0;
 		void* data;
 		vkMapMemory(device, uniformBuffersMemory[currentImage], 0, sizeof(ubo), 0, &data);

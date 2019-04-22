@@ -37,7 +37,7 @@ float tempMatrix[16];
 glm::vec3 mainEyeLoc(4.0, 4.0, 4.0);
 glm::vec3 centerLoc(0.0, 0.0, 0.0);
 glm::vec3 up(0.0, 1.0, 0.0);
-float fov = glm::radians<float>(45.0f);
+float fov = glm::radians<float>(90.0f);
 
 //need to load in the value of the uniform buffers for the frag and vert shader + load attributes
 void loadInitialVariables(MainVulkApplication & _app) {
@@ -60,11 +60,13 @@ void loadInitialVariables(MainVulkApplication & _app) {
 	_app.ufo.viewMatrix = glm::inverseTranspose(viewMatrix3x3);;
 	_app.ufo.eyeViewMatrix = glm::inverseTranspose(viewMatrix3x3);
 
-	for (int i = 0; i < numberOfSpheres; ++i) {
+	//initialize last one for ground
+	for (int i = 0; i <= numberOfSpheres; ++i) {
 		glm::mat4* modelMat = (glm::mat4*)(((uint64_t)_app.uboDataDynamic.model + (i * _app.dynamicAlignment)));
 
 		*modelMat = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	}
+
 }
 
 void updateUniformBuffer(MainVulkApplication & _app) {
